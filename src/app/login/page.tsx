@@ -1,43 +1,11 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleGoogleLogin = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        throw new Error("Konfigurasi login belum tersedia. Hubungi admin AutoKas.");
-      }
-
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: "offline",
-            prompt: "consent",
-          },
-        },
-      });
-
-      if (error) throw error;
-      if (!data.url) throw new Error("Alamat login Google tidak berhasil dibuat.");
-
-      window.location.assign(data.url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login gagal.");
-      setLoading(false);
-    }
-  };
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
@@ -58,18 +26,16 @@ export default function LoginPage() {
 
         {error && (
           <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
-            {error}
+            {decodeURIComponent(error)}
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
+        <Link
+          href="/auth/login"
+          className="flex min-h-12 w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 active:scale-[0.99]"
         >
-          {loading ? "Memproses..." : "Masuk dengan Google"}
-        </button>
+          Masuk dengan Google
+        </Link>
 
         <div className="mt-6 text-center text-sm text-slate-400">
           <Link href="/" className="text-emerald-300 hover:text-emerald-200">
