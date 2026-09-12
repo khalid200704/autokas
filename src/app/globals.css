@@ -1,26 +1,118 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f7f2;
+  --foreground: #17332f;
+  --ink: #17332f;
+  --muted: #6f817c;
+  --line: #dce6df;
+  --surface: #ffffff;
+  --surface-soft: #edf4ee;
+  --mint: #2f9d78;
+  --mint-dark: #23735b;
+  --coral: #d8645a;
+  --amber: #b57b24;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: #bfe3cf;
+  color: var(--ink);
+}
+
+.app-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(191, 227, 207, 0.55), transparent 26rem),
+    var(--background);
+}
+
+.app-header {
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(14px);
+}
+
+.app-panel {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 16px 40px rgba(35, 72, 61, 0.07);
+}
+
+.app-input {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfdfb;
+  color: var(--ink);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.app-input:focus {
+  border-color: var(--mint);
+  box-shadow: 0 0 0 3px rgba(47, 157, 120, 0.14);
+  outline: none;
+}
+
+.app-button-primary {
+  border-radius: 999px;
+  background: var(--mint);
+  color: white;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.app-button-primary:hover {
+  background: var(--mint-dark);
+  transform: translateY(-1px);
+}
+
+.app-button-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+a {
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+select {
+  font: inherit;
 }
