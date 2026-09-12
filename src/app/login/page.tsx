@@ -13,8 +13,12 @@ export default function LoginPage() {
       setLoading(true);
       setError(null);
 
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        throw new Error("Konfigurasi login belum tersedia. Hubungi admin AutoKas.");
+      }
+
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
@@ -26,6 +30,9 @@ export default function LoginPage() {
       });
 
       if (error) throw error;
+      if (!data.url) throw new Error("Alamat login Google tidak berhasil dibuat.");
+
+      window.location.assign(data.url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login gagal.");
       setLoading(false);
