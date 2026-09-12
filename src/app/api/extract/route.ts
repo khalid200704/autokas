@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const maxDuration = 8;
+export const maxDuration = 30;
 
 const extractionPrompt = `Analisis gambar struk atau bukti transaksi ini.
 Kembalikan HANYA JSON valid tanpa markdown, backtick, atau teks tambahan.
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(7500),
+        signal: AbortSignal.timeout(25000),
         body: JSON.stringify({
           contents: [
             {
@@ -126,8 +126,23 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const details = await response.text();
       console.error("Gemini response error:", details);
+      let providerMessage = "Gemini menolak permintaan.";
+      try {
+        const parsedDetails = JSON.parse(details) as {
+          error?: { message?: string };
+        };
+        providerMessage = parsedDetails.error?.message || providerMessage;
+      } catch {
+        // Keep a safe fallback when the provider response is not JSON.
+      }
+
       return NextResponse.json(
-        { message: "Gemini gagal memproses gambar. Periksa API key atau kuota." },
+        {
+          message:
+            response.status === 429
+              ? "Kuota Gemini sedang habis atau terlalu banyak permintaan. Coba lagi beberapa saat."
+              : `Gemini error (${response.status}): ${providerMessage}`,
+        },
         { status: response.status === 429 ? 429 : 502 }
       );
     }
@@ -135,14 +150,31 @@ export async function POST(request: Request) {
     const responseBody = (await response.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     };
-    const modelText = responseBody.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!modelText) throw new Error("Gemini tidak mengembalikan isi.");
+    const candidate = responseBody.candidates?.[0];
+    const modelText = candidate?.content?.parts?.[0]?.text;
+    if (!modelText) {
+      throw new Error(
+        `Gemini tidak mengembalikan hasil${candidate ? ` (${JSON.stringify(candidate)})` : ""}.`
+      );
+    }
 
     return NextResponse.json(normalizeResult(parseModelJson(modelText)), { status: 200 });
   } catch (error) {
     console.error("Extract API error:", error);
+    if (error instanceof DOMException && error.name === "TimeoutError") {
+      return NextResponse.json(
+        { message: "Gemini terlalu lama membaca gambar. Coba foto yang lebih jelas atau ulangi." },
+        { status: 504 }
+      );
+    }
+
     return NextResponse.json(
-      { message: "Gemini gagal memproses gambar." },
+      {
+        message:
+          error instanceof Error
+            ? `Gagal membaca hasil Gemini: ${error.message}`
+            : "Gemini gagal memproses gambar.",
+      },
       { status: 500 }
     );
   }
