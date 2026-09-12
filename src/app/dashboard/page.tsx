@@ -2,16 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  categoryBreakdown,
   formatCurrency,
-  recentTransactions,
-  summaryStats,
   type ItemCategory,
 } from "@/lib/mock-data";
-import { readSavedTransactions, type SavedTransaction } from "@/lib/transaction-storage";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/client";
 import { readOwnTransactions } from "@/lib/supabase/transactions";
+import type { SavedTransaction } from "@/lib/transaction-storage";
 
 export default function DashboardPage() {
   const [savedTransactions, setSavedTransactions] = useState<SavedTransaction[]>([]);
@@ -22,12 +19,11 @@ export default function DashboardPage() {
     let active = true;
 
     async function loadTransactions() {
-      const localTransactions = readSavedTransactions();
       try {
         const supabase = createClient();
         const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {
-          if (active) setSavedTransactions(localTransactions);
+          if (active) setSavedTransactions([]);
           return;
         }
 
@@ -54,7 +50,7 @@ export default function DashboardPage() {
         })) as SavedTransaction[];
         if (active) setSavedTransactions(normalized);
       } catch {
-        if (active) setSavedTransactions(localTransactions);
+        if (active) setSavedTransactions([]);
       }
     }
 
@@ -73,7 +69,6 @@ export default function DashboardPage() {
       total: transaction.total_amount,
       category: transaction.items[0]?.category ?? "Lain-lain",
     })),
-    ...recentTransactions,
   ];
 
   const filteredTransactions = useMemo(() => {
@@ -96,13 +91,32 @@ export default function DashboardPage() {
       .filter((transaction) => transaction.transaction_type === "PENGELUARAN")
       .reduce((total, transaction) => total + transaction.total_amount, 0);
 
-    if (!savedTransactions.length) return summaryStats;
-
     return [
       { label: "Pendapatan", value: income, tone: "emerald" },
       { label: "Pengeluaran", value: expense, tone: "rose" },
       { label: "Saldo", value: income - expense, tone: "blue" },
     ];
+  }, [savedTransactions]);
+
+  const categoryTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    savedTransactions
+      .filter((transaction) => transaction.transaction_type === "PENGELUARAN")
+      .forEach((transaction) => {
+        transaction.items.forEach((item) => {
+          totals.set(item.category, (totals.get(item.category) ?? 0) + item.price * item.qty);
+        });
+      });
+    const max = Math.max(...totals.values(), 0);
+    return [...totals.entries()]
+      .sort(([, first], [, second]) => second - first)
+      .slice(0, 6)
+      .map(([name, value], index) => ({
+        name,
+        value,
+        width: max ? (value / max) * 100 : 0,
+        color: ["#2f9d78", "#5c8fca", "#d89b3d", "#d8645a", "#9275b9", "#6f817c"][index],
+      }));
   }, [savedTransactions]);
 
   return (
@@ -166,7 +180,9 @@ export default function DashboardPage() {
                   className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] p-4"
                 >
                   <div>
-                    <p className="font-medium text-[var(--ink)]">{transaction.merchant}</p>
+                    <a href={`/transactions/${transaction.id}`} className="font-medium text-[var(--ink)] hover:text-[var(--mint-dark)]">
+                      {transaction.merchant}
+                    </a>
                     <p className="text-sm text-[var(--muted)]">
                       {transaction.date} • {transaction.category}
                     </p>
@@ -206,7 +222,7 @@ export default function DashboardPage() {
           <div className="app-panel p-6">
             <h2 className="mb-4 text-xl font-semibold">Pengeluaran per kategori</h2>
             <div className="space-y-4">
-              {categoryBreakdown.map((item) => (
+              {categoryTotals.map((item) => (
                 <div key={item.name}>
                   <div className="mb-1 flex items-center justify-between text-sm text-slate-300">
                     <span>{item.name}</span>
@@ -215,11 +231,14 @@ export default function DashboardPage() {
                   <div className="h-2.5 rounded-full bg-slate-800">
                     <div
                       className="h-2.5 rounded-full"
-                      style={{ width: `${(item.value / 640000) * 100}%`, background: item.color }}
+                      style={{ width: `${item.width}%`, background: item.color }}
                     />
                   </div>
                 </div>
               ))}
+              {!categoryTotals.length && (
+                <p className="text-sm text-[var(--muted)]">Belum ada data pengeluaran.</p>
+              )}
             </div>
           </div>
         </section>

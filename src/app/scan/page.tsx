@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import imageCompression from "browser-image-compression";
 import { useRouter } from "next/navigation";
 import { emptyTransaction, formatCurrency, type ExtractedTransaction, type TransactionItem } from "@/lib/mock-data";
-import { saveExtractionCorrection, saveTransaction } from "@/lib/transaction-storage";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/client";
 import { createTransactionWithItems, uploadReceipt } from "@/lib/supabase/transactions";
@@ -157,10 +156,7 @@ export default function ScanPage() {
           sourceFileName: selectedFile?.name,
         });
       } else {
-        if (aiResult && selectedFile) {
-          saveExtractionCorrection(selectedFile.name, aiResult, transaction);
-        }
-        saveTransaction(transaction);
+        throw new Error("Silakan login terlebih dahulu untuk menyimpan transaksi.");
       }
 
       setIsSaved(true);

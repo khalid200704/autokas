@@ -63,6 +63,63 @@ export async function readOwnTransactions() {
   return data ?? [];
 }
 
+export async function readOwnTransaction(transactionId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("*, transaction_items(*)")
+    .eq("id", transactionId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateOwnTransaction(
+  transactionId: string,
+  transaction: ExtractedTransaction
+) {
+  const supabase = createClient();
+  const { error: headerError } = await supabase
+    .from("transactions")
+    .update({
+      merchant: transaction.merchant,
+      description: transaction.description,
+      total_amount: transaction.total_amount,
+      date: transaction.date,
+      transaction_type: transaction.transaction_type,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", transactionId);
+  if (headerError) throw headerError;
+
+  const { error: deleteError } = await supabase
+    .from("transaction_items")
+    .delete()
+    .eq("transaction_id", transactionId);
+  if (deleteError) throw deleteError;
+
+  const { error: itemError } = await supabase.from("transaction_items").insert(
+    transaction.items.map((item) => ({
+      transaction_id: transactionId,
+      item_name: item.item_name,
+      price: item.price,
+      qty: item.qty,
+      category: item.category,
+    }))
+  );
+  if (itemError) throw itemError;
+}
+
+export async function deleteOwnTransaction(transactionId: string) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("transactions")
+    .delete()
+    .eq("id", transactionId);
+  if (error) throw error;
+}
+
 export async function consumeAiRequest(dailyLimit = 20) {
   const supabase = createClient();
   const { data, error } = await supabase.rpc("consume_ai_request", {
