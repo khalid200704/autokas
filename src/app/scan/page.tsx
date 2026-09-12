@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import imageCompression from "browser-image-compression";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { emptyTransaction, formatCurrency, type ExtractedTransaction, type TransactionItem } from "@/lib/mock-data";
 import { saveExtractionCorrection, saveTransaction } from "@/lib/transaction-storage";
+import { AppShell } from "@/components/app-shell";
+import { createClient } from "@/lib/supabase/client";
+import { createTransactionWithItems, uploadReceipt } from "@/lib/supabase/transactions";
 
 const categoryOptions = [
   "Makanan & Minuman",
@@ -28,6 +30,7 @@ export default function ScanPage() {
   const [aiResult, setAiResult] = useState<ExtractedTransaction | null>(null);
   const [hasDetectionResult, setHasDetectionResult] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const totalItems = useMemo(
     () =>
@@ -46,6 +49,11 @@ export default function ScanPage() {
     setIsLoading(true);
 
     try {
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error("Gunakan gambar JPG, PNG, atau WebP.");
+      }
+
       if (file.size > 10 * 1024 * 1024) {
         throw new Error("Ukuran file melebihi 10 MB.");
       }
@@ -87,6 +95,10 @@ export default function ScanPage() {
     }
   };
 
+  const retryDetection = () => {
+    if (selectedFile) handleImageUpload(selectedFile);
+  };
+
   const updateField = <K extends keyof ExtractedTransaction>(field: K, value: ExtractedTransaction[K]) => {
     setTransaction((current) => ({ ...current, [field]: value }));
   };
@@ -119,36 +131,54 @@ export default function ScanPage() {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!hasDetectionResult || !transaction.merchant.trim() || !transaction.date || transaction.total_amount < 0) {
       setError("Merchant, tanggal, dan total wajib diisi dengan benar.");
       return;
     }
 
-    if (aiResult && selectedFile) {
-      saveExtractionCorrection(selectedFile.name, aiResult, transaction);
+    setError(null);
+    setIsSaving(true);
+    try {
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+
+      if (userData.user) {
+        const transactionId = crypto.randomUUID();
+        let imagePath: string | null = null;
+        if (selectedFile) {
+          imagePath = await uploadReceipt(userData.user.id, transactionId, selectedFile);
+        }
+        await createTransactionWithItems({
+          transaction,
+          transactionId,
+          imagePath,
+          aiResult,
+          sourceFileName: selectedFile?.name,
+        });
+      } else {
+        if (aiResult && selectedFile) {
+          saveExtractionCorrection(selectedFile.name, aiResult, transaction);
+        }
+        saveTransaction(transaction);
+      }
+
+      setIsSaved(true);
+      window.setTimeout(() => router.push("/dashboard"), 700);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Transaksi gagal disimpan.");
+    } finally {
+      setIsSaving(false);
     }
-    saveTransaction(transaction);
-    setIsSaved(true);
-    window.setTimeout(() => router.push("/dashboard"), 700);
   };
 
   return (
-    <main className="app-shell px-4 py-8 text-[var(--ink)]">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.25em] text-[var(--mint-dark)]">AutoKas</p>
-            <h1 className="mt-2 text-3xl font-bold">Scan & Verifikasi</h1>
-          </div>
-          <Link
-            href="/dashboard"
-            className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm text-[var(--ink)] transition hover:border-[var(--mint)]"
-          >
-            Ke dashboard
-          </Link>
-        </div>
-
+    <AppShell
+      title="Scan & verifikasi"
+      description="Foto struk, periksa hasil AI, lalu simpan setelah datanya benar."
+      backHref="/dashboard"
+      backLabel="Ke dashboard"
+    >
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <section className="app-panel p-5">
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--mint)] bg-[var(--surface-soft)] px-6 py-10 text-center transition hover:bg-[#e2f0e6]">
@@ -179,7 +209,16 @@ export default function ScanPage() {
 
             {error && (
               <div className="mt-4 rounded-xl border border-[var(--coral)]/30 bg-[#fff0ed] px-4 py-3 text-sm text-[var(--coral)]">
-                {error}
+                <p>{error}</p>
+                {selectedFile && !isLoading && (
+                  <button
+                    type="button"
+                    onClick={retryDetection}
+                    className="mt-3 rounded-full border border-[var(--coral)] px-3 py-1.5 text-xs font-semibold transition hover:bg-white"
+                  >
+                    Coba lagi
+                  </button>
+                )}
               </div>
             )}
 
@@ -196,10 +235,10 @@ export default function ScanPage() {
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={isSaved || !hasDetectionResult}
+                disabled={isSaved || isSaving || !hasDetectionResult}
                 className="app-button-primary px-3 py-1.5 text-xs font-semibold"
               >
-                {isSaved ? "Tersimpan" : "Simpan transaksi"}
+                {isSaved ? "Tersimpan" : isSaving ? "Menyimpan..." : "Simpan transaksi"}
               </button>
             </div>
 
@@ -337,7 +376,6 @@ export default function ScanPage() {
             )}
           </section>
         </div>
-      </div>
-    </main>
+    </AppShell>
   );
 }

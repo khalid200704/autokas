@@ -94,6 +94,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const allowedMimeTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!allowedMimeTypes.has(image.type)) {
+      return NextResponse.json(
+        { message: "Format gambar harus JPG, PNG, atau WebP." },
+        { status: 400 }
+      );
+    }
+
     const imageBase64 = Buffer.from(await image.arrayBuffer()).toString("base64");
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,

@@ -1,19 +1,67 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   categoryBreakdown,
   formatCurrency,
   recentTransactions,
   summaryStats,
+  type ItemCategory,
 } from "@/lib/mock-data";
 import { readSavedTransactions, type SavedTransaction } from "@/lib/transaction-storage";
+import { AppShell } from "@/components/app-shell";
+import { createClient } from "@/lib/supabase/client";
+import { readOwnTransactions } from "@/lib/supabase/transactions";
 
 export default function DashboardPage() {
   const [savedTransactions, setSavedTransactions] = useState<SavedTransaction[]>([]);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"SEMUA" | "PENGELUARAN" | "PENDAPATAN">("SEMUA");
 
   useEffect(() => {
-    setSavedTransactions(readSavedTransactions());
+    let active = true;
+
+    async function loadTransactions() {
+      const localTransactions = readSavedTransactions();
+      try {
+        const supabase = createClient();
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          if (active) setSavedTransactions(localTransactions);
+          return;
+        }
+
+        const remoteTransactions = await readOwnTransactions();
+        const normalized = remoteTransactions.map((transaction) => ({
+          id: transaction.id,
+          merchant: transaction.merchant,
+          description: transaction.description ?? "",
+          date: transaction.date,
+          transaction_type: transaction.transaction_type,
+          total_amount: Number(transaction.total_amount),
+          items: (transaction.transaction_items ?? []).map((item: {
+            item_name: string;
+            price: number | string;
+            qty: number | string;
+            category: ItemCategory;
+          }) => ({
+            item_name: item.item_name,
+            price: Number(item.price),
+            qty: Number(item.qty),
+            category: item.category,
+          })),
+          savedAt: transaction.created_at,
+        })) as SavedTransaction[];
+        if (active) setSavedTransactions(normalized);
+      } catch {
+        if (active) setSavedTransactions(localTransactions);
+      }
+    }
+
+    loadTransactions();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const transactions = [
@@ -28,26 +76,43 @@ export default function DashboardPage() {
     ...recentTransactions,
   ];
 
-  return (
-    <main className="app-shell px-4 py-8 text-[var(--ink)]">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <header className="app-header -mx-4 -mt-8 flex flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--mint-dark)]">
-              AutoKas
-            </p>
-            <h1 className="mt-2 text-3xl font-bold">Ringkasan kas</h1>
-          </div>
-          <a
-            href="/scan"
-            className="app-button-primary inline-flex items-center justify-center px-5 py-3 text-sm font-semibold"
-          >
-            + Tambah transaksi
-          </a>
-        </header>
+  const filteredTransactions = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return transactions.filter((transaction) => {
+      const matchesType = typeFilter === "SEMUA" || transaction.type === typeFilter;
+      const matchesSearch =
+        !normalizedSearch ||
+        transaction.merchant.toLowerCase().includes(normalizedSearch) ||
+        transaction.category.toLowerCase().includes(normalizedSearch);
+      return matchesType && matchesSearch;
+    });
+  }, [search, typeFilter, transactions]);
 
+  const liveStats = useMemo(() => {
+    const income = savedTransactions
+      .filter((transaction) => transaction.transaction_type === "PENDAPATAN")
+      .reduce((total, transaction) => total + transaction.total_amount, 0);
+    const expense = savedTransactions
+      .filter((transaction) => transaction.transaction_type === "PENGELUARAN")
+      .reduce((total, transaction) => total + transaction.total_amount, 0);
+
+    if (!savedTransactions.length) return summaryStats;
+
+    return [
+      { label: "Pendapatan", value: income, tone: "emerald" },
+      { label: "Pengeluaran", value: expense, tone: "rose" },
+      { label: "Saldo", value: income - expense, tone: "blue" },
+    ];
+  }, [savedTransactions]);
+
+  return (
+    <AppShell
+      title="Ringkasan kas"
+      description="Lihat arus uang bulan ini dan catat transaksi baru dalam hitungan detik."
+    >
+      <div className="space-y-8">
         <section className="grid gap-4 md:grid-cols-3">
-          {summaryStats.map((item) => (
+          {liveStats.map((item) => (
             <div key={item.label} className="app-panel p-5">
               <p className="text-sm text-[var(--muted)]">{item.label}</p>
               <p className="mt-3 text-3xl font-bold text-[var(--ink)]">
@@ -66,8 +131,36 @@ export default function DashboardPage() {
               </span>
             </div>
 
+            <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_auto]">
+              <label className="sr-only" htmlFor="transaction-search">
+                Cari transaksi
+              </label>
+              <input
+                id="transaction-search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari merchant atau kategori"
+                className="app-input w-full px-3 py-2.5 text-sm"
+              />
+              <label className="sr-only" htmlFor="transaction-type">
+                Filter tipe transaksi
+              </label>
+              <select
+                id="transaction-type"
+                value={typeFilter}
+                onChange={(event) =>
+                  setTypeFilter(event.target.value as typeof typeFilter)
+                }
+                className="app-input px-3 py-2.5 text-sm"
+              >
+                <option value="SEMUA">Semua tipe</option>
+                <option value="PENGELUARAN">Pengeluaran</option>
+                <option value="PENDAPATAN">Pendapatan</option>
+              </select>
+            </div>
+
             <div className="space-y-3">
-              {transactions.map((transaction) => (
+              {filteredTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
                   className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] p-4"
@@ -93,6 +186,20 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
+              {!filteredTransactions.length && (
+                <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-soft)] px-5 py-8 text-center">
+                  <p className="font-semibold text-[var(--ink)]">Belum ada transaksi yang cocok</p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    Coba ubah pencarian atau mulai dengan scan struk baru.
+                  </p>
+                  <a
+                    href="/scan"
+                    className="app-button-primary mt-4 inline-flex px-4 py-2 text-sm font-semibold"
+                  >
+                    Scan struk
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 
@@ -117,6 +224,6 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
-    </main>
+    </AppShell>
   );
 }
