@@ -12,6 +12,8 @@ import type { SavedTransaction } from "@/lib/transaction-storage";
 
 export default function DashboardPage() {
   const [savedTransactions, setSavedTransactions] = useState<SavedTransaction[]>([]);
+  const [accountName, setAccountName] = useState("Anda");
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"SEMUA" | "PENGELUARAN" | "PENDAPATAN">("SEMUA");
 
@@ -26,6 +28,18 @@ export default function DashboardPage() {
           if (active) setSavedTransactions([]);
           return;
         }
+
+        const fallbackName = userData.user.user_metadata?.full_name || userData.user.user_metadata?.name || userData.user.email?.split("@")[0] || "Anda";
+        if (active) {
+          setAccountName(fallbackName);
+          setAccountEmail(userData.user.email ?? null);
+        }
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", userData.user.id)
+          .maybeSingle();
+        if (active && profile?.full_name) setAccountName(profile.full_name);
 
         const remoteTransactions = await readOwnTransactions();
         const normalized = remoteTransactions.map((transaction) => ({
@@ -125,6 +139,17 @@ export default function DashboardPage() {
       description="Lihat arus uang bulan ini dan catat transaksi baru dalam hitungan detik."
     >
       <div className="space-y-8">
+        <section className="flex flex-col justify-between gap-5 rounded-2xl bg-[var(--ink)] p-6 text-white sm:flex-row sm:items-end">
+          <div>
+            <p className="text-sm text-[#b9dcca]">Selamat datang kembali,</p>
+            <h2 className="mt-1 text-3xl font-bold">{accountName}</h2>
+            {accountEmail && <p className="mt-2 text-sm text-[#c2d3cb]">{accountEmail}</p>}
+          </div>
+          <a href="/scan" className="inline-flex items-center justify-center rounded-full bg-[#b9dcca] px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:bg-white">
+            Catat transaksi pertama
+          </a>
+        </section>
+
         <section className="grid gap-4 md:grid-cols-3">
           {liveStats.map((item) => (
             <div key={item.label} className="app-panel p-5">

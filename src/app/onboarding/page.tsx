@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [goal, setGoal] = useState("PERSONAL_FINANCE");
   const [saving, setSaving] = useState(false);
 
   const handleContinue = async () => {
@@ -17,7 +16,6 @@ export default function OnboardingPage() {
     if (data.user) {
       await supabase.from("profiles").upsert({
         id: data.user.id,
-        onboarding_goal: goal,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       });
@@ -33,35 +31,12 @@ export default function OnboardingPage() {
       backLabel="Beranda"
     >
       <section className="app-panel max-w-2xl p-6 sm:p-8">
-        <fieldset>
-          <legend className="text-lg font-semibold">Apa yang ingin Anda catat?</legend>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {[
-              ["PERSONAL_FINANCE", "Keuangan pribadi", "Pantau pengeluaran harian dan saldo."],
-              ["FREELANCER", "Pekerjaan freelance", "Pisahkan pemasukan proyek dan biaya kerja."],
-            ].map(([value, label, description]) => (
-              <label
-                key={value}
-                className={`cursor-pointer rounded-xl border p-4 transition ${
-                  goal === value
-                    ? "border-[var(--mint)] bg-[var(--surface-soft)]"
-                    : "border-[var(--line)] bg-white"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="goal"
-                  value={value}
-                  checked={goal === value}
-                  onChange={(event) => setGoal(event.target.value)}
-                  className="sr-only"
-                />
-                <span className="block font-semibold">{label}</span>
-                <span className="mt-1 block text-sm text-[var(--muted)]">{description}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <div className="rounded-2xl bg-[var(--surface-soft)] p-5">
+          <p className="text-lg font-semibold">Semua siap untuk mulai.</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+            AutoKas akan membantu Anda mencatat pemasukan dan pengeluaran. Anda bisa langsung mulai dari dashboard dan mengubah semua detail transaksi kapan saja.
+          </p>
+        </div>
         <button
           type="button"
           onClick={handleContinue}
