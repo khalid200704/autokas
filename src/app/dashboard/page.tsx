@@ -14,6 +14,8 @@ export default function DashboardPage() {
   const [savedTransactions, setSavedTransactions] = useState<SavedTransaction[]>([]);
   const [accountName, setAccountName] = useState("Anda");
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"SEMUA" | "PENGELUARAN" | "PENDAPATAN">("SEMUA");
 
@@ -21,6 +23,8 @@ export default function DashboardPage() {
     let active = true;
 
     async function loadTransactions() {
+      setIsLoading(true);
+      setLoadError(null);
       try {
         const supabase = createClient();
         const { data: userData } = await supabase.auth.getUser();
@@ -64,7 +68,12 @@ export default function DashboardPage() {
         })) as SavedTransaction[];
         if (active) setSavedTransactions(normalized);
       } catch {
-        if (active) setSavedTransactions([]);
+        if (active) {
+          setSavedTransactions([]);
+          setLoadError("Ringkasan belum bisa dimuat. Coba segarkan halaman.");
+        }
+      } finally {
+        if (active) setIsLoading(false);
       }
     }
 
@@ -139,34 +148,40 @@ export default function DashboardPage() {
       description="Lihat arus uang bulan ini dan catat transaksi baru dalam hitungan detik."
     >
       <div className="space-y-8">
-        <section className="flex flex-col justify-between gap-5 rounded-2xl bg-[var(--ink)] p-6 text-white sm:flex-row sm:items-end">
+        <section className="flex flex-col justify-between gap-5 rounded-2xl bg-[var(--ink)] p-6 text-white shadow-lg shadow-[#315b4930] sm:flex-row sm:items-end">
           <div>
             <p className="text-sm text-[#b9dcca]">Selamat datang kembali,</p>
             <h2 className="mt-1 text-3xl font-bold">{accountName}</h2>
             {accountEmail && <p className="mt-2 text-sm text-[#c2d3cb]">{accountEmail}</p>}
           </div>
           <a href="/scan" className="inline-flex items-center justify-center rounded-full bg-[#b9dcca] px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:bg-white">
-            Catat transaksi pertama
+            + Catat transaksi
           </a>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        {loadError && (
+          <div role="alert" className="flex flex-col justify-between gap-3 rounded-xl border border-[var(--coral)]/30 bg-[#fff0ed] px-4 py-3 text-sm text-[var(--coral)] sm:flex-row sm:items-center">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => window.location.reload()} className="font-semibold underline underline-offset-4">Coba lagi</button>
+          </div>
+        )}
+
+        <section aria-label="Ringkasan saldo" className="grid gap-4 md:grid-cols-3">
           {liveStats.map((item) => (
-            <div key={item.label} className="app-panel p-5">
+            <div key={item.label} className="app-panel relative overflow-hidden p-5">
+              <div className={`absolute inset-y-0 left-0 w-1 ${item.label === "Pendapatan" ? "bg-[var(--mint)]" : item.label === "Pengeluaran" ? "bg-[var(--coral)]" : "bg-[#5c8fca]"}`} />
               <p className="text-sm text-[var(--muted)]">{item.label}</p>
-              <p className="mt-3 text-3xl font-bold text-[var(--ink)]">
-                {formatCurrency(item.value)}
-              </p>
+              {isLoading ? <div className="mt-4 h-9 w-36 animate-pulse rounded-lg bg-[var(--surface-soft)]" /> : <p className="mt-3 text-3xl font-bold text-[var(--ink)]">{formatCurrency(item.value)}</p>}
             </div>
           ))}
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
           <div className="app-panel p-6">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-start justify-between gap-4">
               <h2 className="text-xl font-semibold">Riwayat transaksi</h2>
               <span className="text-sm text-[var(--muted)]">
-                {savedTransactions.length ? `${savedTransactions.length} tersimpan` : "Bulan ini"}
+                {savedTransactions.length ? `${savedTransactions.length} transaksi` : "Belum ada"}
               </span>
             </div>
 
@@ -198,8 +213,9 @@ export default function DashboardPage() {
               </select>
             </div>
 
-            <div className="space-y-3">
-              {filteredTransactions.map((transaction) => (
+            <div className="space-y-3" aria-live="polite">
+              {isLoading && [1, 2, 3].map((item) => <div key={item} className="h-20 animate-pulse rounded-xl bg-[var(--surface-soft)]" />)}
+              {!isLoading && filteredTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
                   className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] p-4"
@@ -227,11 +243,11 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
-              {!filteredTransactions.length && (
+              {!isLoading && !filteredTransactions.length && (
                 <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-soft)] px-5 py-8 text-center">
-                  <p className="font-semibold text-[var(--ink)]">Belum ada transaksi yang cocok</p>
+                  <p className="font-semibold text-[var(--ink)]">Belum ada transaksi</p>
                   <p className="mt-1 text-sm text-[var(--muted)]">
-                    Coba ubah pencarian atau mulai dengan scan struk baru.
+                    Mulai dengan mencatat uang masuk atau scan struk pertama Anda.
                   </p>
                   <a
                     href="/scan"
@@ -245,7 +261,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="app-panel p-6">
-            <h2 className="mb-4 text-xl font-semibold">Pengeluaran per kategori</h2>
+            <div className="mb-4 flex items-start justify-between gap-4"><div><h2 className="text-xl font-semibold">Pengeluaran per kategori</h2><p className="mt-1 text-sm text-[var(--muted)]">Bulan berjalan</p></div><span className="rounded-full bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--mint-dark)]">Ringkas</span></div>
             <div className="space-y-4">
               {categoryTotals.map((item) => (
                 <div key={item.name}>
