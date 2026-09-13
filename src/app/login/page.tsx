@@ -6,6 +6,11 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const googleLoginUrl = supabaseUrl
+    ? `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(`${siteUrl}/auth/callback`)}`
+    : "/auth/login";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
@@ -30,12 +35,12 @@ export default async function LoginPage({
           </div>
         )}
 
-        <Link
-          href="/auth/login"
+        <a
+          href={googleLoginUrl}
           className="flex min-h-12 w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 active:scale-[0.99]"
         >
           Masuk dengan Google
-        </Link>
+        </a>
 
         <div className="mt-6 text-center text-sm text-slate-400">
           <Link href="/" className="text-emerald-300 hover:text-emerald-200">
