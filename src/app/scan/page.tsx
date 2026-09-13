@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import imageCompression from "browser-image-compression";
 import { useRouter } from "next/navigation";
 import { emptyTransaction, formatCurrency, type ExtractedTransaction, type TransactionItem } from "@/lib/mock-data";
@@ -30,8 +30,6 @@ export default function ScanPage() {
   const [hasDetectionResult, setHasDetectionResult] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const totalItems = useMemo(
     () =>
@@ -185,17 +183,15 @@ export default function ScanPage() {
     >
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <section className="app-panel p-5">
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--mint)] bg-[var(--surface-soft)] px-6 py-10 text-center">
-              <input ref={cameraInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="sr-only" onChange={handleFileChange} />
-              <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={handleFileChange} />
+            <label className="relative flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--mint)] bg-[var(--surface-soft)] px-6 py-10 text-center transition hover:bg-[#e2f0e6]">
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" onChange={handleFileChange} />
               <span className="text-lg font-semibold text-[var(--ink)]">Tambahkan foto struk</span>
               <span className="mt-2 text-sm text-[var(--muted)]">Ambil foto baru atau pilih dari galeri</span>
               <div className="mt-5 flex flex-col gap-2 min-[380px]:flex-row">
-                <button type="button" onClick={() => cameraInputRef.current?.click()} className="app-button-primary px-4 py-2.5 text-sm font-semibold">Ambil foto</button>
-                <button type="button" onClick={() => galleryInputRef.current?.click()} className="rounded-full border border-[var(--line)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--mint)]">Pilih dari galeri</button>
+                <span className="app-button-primary px-4 py-2.5 text-sm font-semibold">Pilih foto</span>
               </div>
               <span className="mt-3 text-xs text-[var(--muted)]">JPG, PNG, WebP • maksimal 10 MB</span>
-            </div>
+            </label>
 
             {previewUrl && (
               <div className="mt-5 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
