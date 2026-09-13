@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 
 export default async function LoginPage({
   searchParams,
@@ -7,18 +6,6 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
-  const requestHeaders = await headers();
-  const forwardedHost = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
-  const forwardedProto = requestHeaders.get("x-forwarded-proto") || "https";
-  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  const isLocal = process.env.NODE_ENV !== "production";
-  const siteUrl = isLocal
-    ? configuredSiteUrl || (forwardedHost ? `${forwardedProto}://${forwardedHost}` : "http://localhost:3000")
-    : "https://autokas-ohuv.vercel.app";
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const googleLoginUrl = supabaseUrl
-    ? `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(`${siteUrl}/auth/callback`)}`
-    : "/auth/login";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
@@ -44,7 +31,7 @@ export default async function LoginPage({
         )}
 
         <a
-          href={googleLoginUrl}
+          href="/auth/login"
           className="flex min-h-12 w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 active:scale-[0.99]"
         >
           Masuk dengan Google
