@@ -24,6 +24,7 @@ export default function ScanPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [processingStage, setProcessingStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [transaction, setTransaction] = useState<ExtractedTransaction>(emptyTransaction);
   const [aiResult, setAiResult] = useState<ExtractedTransaction | null>(null);
@@ -46,6 +47,7 @@ export default function ScanPage() {
     setTransaction(emptyTransaction);
     setAiResult(null);
     setIsLoading(true);
+    setProcessingStage("Menyiapkan foto...");
 
     try {
       const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -64,6 +66,7 @@ export default function ScanPage() {
         initialQuality: 0.8,
       });
 
+      setProcessingStage("Mengirim foto ke AI...");
       setSelectedFile(compressedFile);
       setPreviewUrl(URL.createObjectURL(compressedFile));
 
@@ -83,12 +86,14 @@ export default function ScanPage() {
       }
 
       const parsed = (await response.json()) as ExtractedTransaction;
+      setProcessingStage("Selesai membaca struk.");
       setTransaction(parsed);
       setAiResult(parsed);
       setHasDetectionResult(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Terjadi kesalahan.";
       setError(message);
+      setProcessingStage("Deteksi gagal.");
     } finally {
       setIsLoading(false);
     }
@@ -199,9 +204,10 @@ export default function ScanPage() {
               </div>
             )}
 
-            {isLoading && (
-              <div className="mt-4 rounded-xl border border-[var(--mint)]/30 bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--mint-dark)]">
-                Mengompresi dan mengekstrak data dari gambar...
+            {processingStage && (
+              <div role="status" aria-live="polite" className={`mt-4 rounded-xl border px-4 py-3 text-sm ${isLoading ? "border-[var(--mint)]/30 bg-[var(--surface-soft)] text-[var(--mint-dark)]" : processingStage.includes("gagal") ? "border-[var(--coral)]/30 bg-[#fff0ed] text-[var(--coral)]" : "border-[var(--mint)]/30 bg-[var(--surface-soft)] text-[var(--mint-dark)]"}`}>
+                <span className="font-semibold">{processingStage}</span>
+                {isLoading && <span className="ml-2 inline-block animate-pulse">Mohon tunggu...</span>}
               </div>
             )}
 
