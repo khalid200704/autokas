@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const { origin } = new URL(request.url);
+  const siteUrl = process.env.NODE_ENV === "production"
+    ? "https://autokas-ohuv.vercel.app"
+    : origin;
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,7 +26,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: `${siteUrl}/auth/callback`,
       queryParams: {
         access_type: "offline",
         prompt: "select_account",
@@ -33,7 +36,7 @@ export async function GET(request: Request) {
 
   if (error || !data.url) {
     const message = encodeURIComponent(error?.message || "Alamat login Google tidak tersedia.");
-    return NextResponse.redirect(`${origin}/login?error=${message}`);
+    return NextResponse.redirect(`${siteUrl}/login?error=${message}`);
   }
 
   return NextResponse.redirect(data.url);
