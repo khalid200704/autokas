@@ -10,9 +10,11 @@ export default async function LoginPage({
   const requestHeaders = await headers();
   const forwardedHost = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
   const forwardedProto = requestHeaders.get("x-forwarded-proto") || "https";
-  const siteUrl = forwardedHost
-    ? `${forwardedProto}://${forwardedHost}`
-    : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (
+    forwardedHost
+      ? `${forwardedProto}://${forwardedHost}`
+      : "http://localhost:3000"
+  );
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const googleLoginUrl = supabaseUrl
     ? `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(`${siteUrl}/auth/callback`)}`
