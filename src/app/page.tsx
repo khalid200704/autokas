@@ -1,26 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowRight, Check, ScanLine, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-async function redirectIfAuthenticated() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
-
-  let authenticated = false;
-  try {
-    const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    authenticated = Boolean(user);
-  } catch {
-    // The public landing page remains available when auth is not configured yet.
-  }
-
-  if (authenticated) redirect("/dashboard");
-}
-
-export default async function Home() {
-  await redirectIfAuthenticated();
-
+export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#f5f7f2] text-[var(--ink)]">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
