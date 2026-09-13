@@ -32,7 +32,7 @@ export function AppShell({
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 py-4">
             <Link href="/dashboard" className="flex items-center gap-3" aria-label="Buka ringkasan AutoKas">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink)] text-lg font-bold text-white">
-                A
+                <img src="/icon.svg" alt="" className="h-8 w-8 object-contain" />
               </span>
               <span>
                 <span className="block text-xs font-bold uppercase tracking-[0.24em] text-[var(--mint-dark)]">
