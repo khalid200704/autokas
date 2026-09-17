@@ -142,7 +142,7 @@ export default function ScanPage() {
   };
 
   const handleSave = async () => {
-    if (!hasDetectionResult || !transaction.merchant.trim() || !transaction.date || transaction.total_amount < 0) {
+    if (!transaction.merchant.trim() || !transaction.date || transaction.total_amount < 0) {
       setError("Merchant, tanggal, dan total wajib diisi dengan benar.");
       return;
     }
@@ -239,7 +239,7 @@ export default function ScanPage() {
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={isSaved || isSaving || !hasDetectionResult}
+                disabled={isSaved || isSaving || isLoading || !transaction.merchant.trim() || !transaction.date}
                 className="app-button-primary px-3 py-1.5 text-xs font-semibold"
               >
                 {isSaved ? "Tersimpan" : isSaving ? "Menyimpan..." : "Simpan transaksi"}
@@ -248,7 +248,7 @@ export default function ScanPage() {
 
             {!hasDetectionResult && !isLoading && (
               <div className="mb-4 rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--muted)]">
-                Pilih foto struk terlebih dahulu. Form akan terisi otomatis setelah gambar selesai dianalisis.
+                Anda bisa mengisi transaksi secara manual, atau pilih foto agar AI mengisinya otomatis.
               </div>
             )}
 
@@ -290,7 +290,9 @@ export default function ScanPage() {
                 <span>Total</span>
                 <input
                   type="number"
-                  value={transaction.total_amount}
+                  min="0"
+                  inputMode="decimal"
+                  value={transaction.total_amount || ""}
                   onChange={(event) => updateField("total_amount", Number(event.target.value))}
                   className="app-input w-full px-3 py-2.5"
                 />
@@ -332,14 +334,18 @@ export default function ScanPage() {
                       />
                       <input
                         type="number"
-                        value={item.price}
+                        min="0"
+                        inputMode="decimal"
+                        value={item.price || ""}
                         onChange={(event) => updateItem(index, "price", Number(event.target.value))}
                         className="app-input px-2 py-2 text-sm"
                         placeholder="Harga"
                       />
                       <input
                         type="number"
-                        value={item.qty}
+                        min="1"
+                        inputMode="numeric"
+                        value={item.qty || ""}
                         onChange={(event) => updateItem(index, "qty", Number(event.target.value))}
                         className="app-input px-2 py-2 text-sm"
                         placeholder="Qty"
