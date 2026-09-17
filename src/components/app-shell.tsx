@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowLeft, LayoutDashboard, Plus, ReceiptText, Settings } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, PiggyBank, Plus, ReceiptText, Settings } from "lucide-react";
 
 type AppShellProps = {
   eyebrow?: string;
@@ -13,6 +13,7 @@ type AppShellProps = {
 
 const navItems = [
   { href: "/dashboard", label: "Ringkasan", icon: LayoutDashboard },
+  { href: "/plan", label: "Rencana", icon: PiggyBank },
   { href: "/scan", label: "Scan struk", icon: ReceiptText },
   { href: "/settings", label: "Pengaturan", icon: Settings },
 ];
