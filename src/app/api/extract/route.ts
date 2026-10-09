@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const maxDuration = 30;
+
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
 
 const extractionPrompt = `Analisis gambar struk atau bukti transaksi ini.
 Kembalikan HANYA JSON valid tanpa markdown, backtick, atau teks tambahan.
@@ -67,8 +70,36 @@ function normalizeResult(value: unknown) {
   };
 }
 
+function extractGeneratedText(responseBody: unknown): string | null {
+  const body = responseBody as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> };
+    }>;
+  };
+
+  const texts = (body.candidates ?? [])
+    .flatMap((candidate) => candidate.content?.parts ?? [])
+    .map((part) => part.text)
+    .filter((partText): partText is string => typeof partText === "string" && partText.trim().length > 0);
+
+  return texts.join("\n").trim() || null;
+}
+
 export async function POST(request: Request) {
   try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { message: "Silakan login terlebih dahulu untuk memindai struk." },
+        { status: 401 }
+      );
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -102,71 +133,100 @@ export async function POST(request: Request) {
       );
     }
 
-    const imageBase64 = Buffer.from(await image.arrayBuffer()).toString("base64");
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(25000),
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: extractionPrompt },
-                {
-                  inline_data: {
-                    mime_type: image.type || "image/jpeg",
-                    data: imageBase64,
-                  },
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: "application/json",
-          },
-        }),
-      }
+    const { data: canExtract, error: quotaError } = await supabase.rpc(
+      "consume_ai_request",
+      { p_daily_limit: 20 }
     );
+    if (quotaError) {
+      console.error("AI quota check error:", quotaError);
+      return NextResponse.json(
+        { message: "Kuota scan belum bisa diperiksa. Coba lagi sebentar." },
+        { status: 503 }
+      );
+    }
+    if (!canExtract) {
+      return NextResponse.json(
+        { message: "Batas 20 scan harian tercapai. Coba lagi besok." },
+        { status: 429 }
+      );
+    }
 
-    if (!response.ok) {
-      const details = await response.text();
-      console.error("Gemini response error:", details);
-      let providerMessage = "Gemini menolak permintaan.";
-      try {
-        const parsedDetails = JSON.parse(details) as {
-          error?: { message?: string };
-        };
-        providerMessage = parsedDetails.error?.message || providerMessage;
-      } catch {
-        // Keep a safe fallback when the provider response is not JSON.
+    const imageBase64 = Buffer.from(await image.arrayBuffer()).toString("base64");
+
+    let lastGeminiError: { status: number; details: string } | null = null;
+    let extractedText: string | null = null;
+
+    for (const modelName of GEMINI_MODELS) {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(25000),
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: extractionPrompt },
+                  {
+                    inline_data: {
+                      mime_type: image.type || "image/jpeg",
+                      data: imageBase64,
+                    },
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: "application/json",
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const details = await response.text();
+        console.error(`Gemini ${modelName} response error:`, details);
+        lastGeminiError = { status: response.status, details };
+        continue;
       }
 
+      const responseBody = await response.json();
+      const modelText = extractGeneratedText(responseBody);
+      if (modelText) {
+        extractedText = modelText;
+        break;
+      }
+    }
+
+    if (!extractedText) {
+      const providerMessage = lastGeminiError
+        ? (() => {
+            try {
+              const parsedDetails = JSON.parse(lastGeminiError.details) as {
+                error?: { message?: string };
+              };
+              return parsedDetails.error?.message || lastGeminiError.details;
+            } catch {
+              return lastGeminiError.details;
+            }
+          })()
+        : "Gemini tidak mengembalikan hasil.";
+
+      const fallbackStatus = lastGeminiError?.status === 429 ? 429 : 502;
       return NextResponse.json(
         {
           message:
-            response.status === 429
+            lastGeminiError?.status === 429
               ? "Kuota Gemini sedang habis atau terlalu banyak permintaan. Coba lagi beberapa saat."
-              : `Gemini error (${response.status}): ${providerMessage}`,
+              : `Gemini error (${lastGeminiError?.status ?? "unknown"}): ${providerMessage}`,
         },
-        { status: response.status === 429 ? 429 : 502 }
+        { status: fallbackStatus }
       );
     }
 
-    const responseBody = (await response.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-    const candidate = responseBody.candidates?.[0];
-    const modelText = candidate?.content?.parts?.[0]?.text;
-    if (!modelText) {
-      throw new Error(
-        `Gemini tidak mengembalikan hasil${candidate ? ` (${JSON.stringify(candidate)})` : ""}.`
-      );
-    }
-
-    return NextResponse.json(normalizeResult(parseModelJson(modelText)), { status: 200 });
+    return NextResponse.json(normalizeResult(parseModelJson(extractedText)), { status: 200 });
   } catch (error) {
     console.error("Extract API error:", error);
     if (error instanceof DOMException && error.name === "TimeoutError") {

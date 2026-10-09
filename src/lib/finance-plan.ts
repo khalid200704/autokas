@@ -1,4 +1,5 @@
-import { EXPENSE_CATEGORIES, type ItemCategory } from "@/lib/finance";
+import { EXPENSE_CATEGORIES } from "@/lib/finance";
+import type { ItemCategory } from "@/lib/mock-data";
 
 export const FINANCE_PLAN_STORAGE_KEY = "autokas.finance-plan";
 

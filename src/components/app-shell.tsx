@@ -28,29 +28,26 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <main className="app-shell min-h-screen px-4 py-5 text-[var(--ink)] sm:py-8">
-      <div className="mx-auto max-w-6xl">
-        <header className="app-header -mx-4 -mt-5 mb-8 px-4 sm:-mt-8">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 py-4">
+      <div className="mx-auto max-w-5xl">
+        <header className="app-header -mx-4 -mt-5 mb-6 px-4 sm:-mt-8">
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 py-4">
             <Link href="/dashboard" className="flex items-center gap-3" aria-label="Buka ringkasan AutoKas">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink)] text-lg font-bold text-white">
-                <img src="/icon.svg" alt="" className="h-8 w-8 object-contain" />
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0f2d2b] text-sm font-bold text-white shadow-sm shadow-[rgba(15,45,43,0.15)]">
+                <img src="/icon.svg" alt="" className="h-6 w-6 object-contain" />
               </span>
-              <span>
-                <span className="block text-xs font-bold uppercase tracking-[0.24em] text-[var(--mint-dark)]">
-                  AutoKas
-                </span>
-                <span className="hidden text-xs text-[var(--muted)] sm:block">Catat tanpa ribet</span>
+              <span className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-[var(--mint-dark)]">
+                AutoKas
               </span>
             </Link>
 
-            <nav aria-label="Navigasi utama" className="hidden items-center gap-1 md:flex">
+            <nav aria-label="Navigasi utama" className="hidden items-center gap-2 md:flex">
               {navItems.map(({ href, label, icon: Icon }) => (
                 <Link
                   key={href}
                   href={href}
-                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--ink)]"
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[0.8rem] text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--ink)]"
                 >
-                  <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
+                  <Icon size={14} strokeWidth={1.8} aria-hidden="true" />
                   {label}
                 </Link>
               ))}
@@ -58,17 +55,17 @@ export function AppShell({
 
             <Link
               href="/scan"
-              className="app-button-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white px-3 py-2 text-[0.76rem] font-medium text-[var(--ink)] shadow-sm"
             >
-              <Plus size={17} strokeWidth={2.2} aria-hidden="true" />
-              <span className="hidden sm:inline">Tambah transaksi</span>
-              <span className="sm:hidden">Tambah</span>
+              <Plus size={13} strokeWidth={2.2} aria-hidden="true" />
+              <span className="hidden sm:inline">Catat transaksi</span>
+              <span className="sm:hidden">Baru</span>
             </Link>
           </div>
 
-          <div className="mx-auto flex max-w-6xl items-end justify-between gap-5 border-t border-[var(--line)] py-6">
+          <div className="mx-auto flex max-w-5xl items-end justify-between gap-5 border-t border-[var(--line)] py-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--mint-dark)]">{eyebrow}</p>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--mint-dark)]">{eyebrow}</p>
               <h1 className="mt-2 text-3xl font-bold sm:text-4xl">{title}</h1>
               {description && <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">{description}</p>}
             </div>

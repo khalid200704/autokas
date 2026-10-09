@@ -154,118 +154,28 @@ export default function DashboardPage() {
   return (
     <AppShell
       title="Ringkasan kas"
-      description="Saring transaksi, baca grafik arus kas, dan bandingkan belanja dengan rencana bulan ini."
+      description="Lihat arus uang bulanan Anda dan catat transaksi baru dengan cepat."
     >
-      <div className="space-y-8">
-        <section className="flex flex-col justify-between gap-5 rounded-2xl bg-[var(--ink)] p-6 text-white shadow-lg shadow-[#315b4930] sm:flex-row sm:items-end">
+      <div className="space-y-6">
+        <section className="flex flex-col justify-between gap-5 rounded-[22px] bg-[#17332f] p-5 text-white shadow-[0_18px_40px_rgba(23,51,47,0.14)] sm:flex-row sm:items-end sm:p-6">
           <div>
-            <p className="text-sm text-[#b9dcca]">Selamat datang kembali,</p>
-            <h2 className="mt-1 text-3xl font-bold">{accountName}</h2>
-            {accountEmail && <p className="mt-2 text-sm text-[#c2d3cb]">{accountEmail}</p>}
-            <p className="mt-3 text-sm text-[#b9dcca]">{periodLabel}</p>
+            <p className="text-sm text-[#d3ebdf]">Selamat datang kembali,</p>
+            <h2 className="mt-1 text-3xl font-bold leading-tight">{accountName}</h2>
+            {accountEmail && <p className="mt-2 text-sm text-[#cfe4de]">{accountEmail}</p>}
           </div>
-          <div className="flex flex-wrap gap-3">
-            <a href="/plan" className="inline-flex items-center justify-center rounded-full border border-[#b9dcca] px-5 py-3 text-sm font-semibold text-[#b9dcca] transition hover:bg-white hover:text-[var(--ink)]">
-              Rencana keuangan
-            </a>
-            <a href="/scan" className="inline-flex items-center justify-center rounded-full bg-[#b9dcca] px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:bg-white">
-              + Catat transaksi
-            </a>
-          </div>
+          <a
+            href="/scan"
+            className="inline-flex items-center justify-center rounded-full bg-[#d9efe4] px-4 py-2.5 text-sm font-semibold text-[#17332f] transition hover:bg-white"
+          >
+            + Catat transaksi
+          </a>
         </section>
 
         {loadError && (
-          <div role="alert" className="flex flex-col justify-between gap-3 rounded-xl border border-[var(--coral)]/30 bg-[#fff0ed] px-4 py-3 text-sm text-[var(--coral)] sm:flex-row sm:items-center">
+          <div role="alert" className="rounded-xl border border-[var(--coral)]/30 bg-[#fff0ed] px-4 py-3 text-sm text-[var(--coral)]">
             <span>{loadError}</span>
-            <button type="button" onClick={() => window.location.reload()} className="font-semibold underline underline-offset-4">
-              Coba lagi
-            </button>
           </div>
         )}
-
-        <section className="app-panel p-4 sm:p-5">
-          <div className="flex flex-wrap gap-2">
-            {(
-              [
-                ["bulan-ini", "Bulan ini"],
-                ["7-hari", "7 hari"],
-                ["30-hari", "30 hari"],
-                ["semua", "Semua"],
-                ["kustom", "Kustom"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => applyPreset(value)}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  preset === value ? "bg-[var(--ink)] text-white" : "bg-[var(--surface-soft)] text-[var(--ink)]"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            <label className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-              Cari
-              <input
-                value={filters.search}
-                onChange={(event) => updateFilter("search", event.target.value)}
-                placeholder="Merchant, barang, atau kategori"
-                className="app-input mt-1 w-full px-3 py-2.5 text-sm font-normal normal-case tracking-normal"
-              />
-            </label>
-            <label className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-              Tipe
-              <select
-                value={filters.type}
-                onChange={(event) => updateFilter("type", event.target.value as TransactionFilters["type"])}
-                className="app-input mt-1 w-full px-3 py-2.5 text-sm font-normal normal-case tracking-normal"
-              >
-                <option value="SEMUA">Semua tipe</option>
-                <option value="PENGELUARAN">Pengeluaran</option>
-                <option value="PENDAPATAN">Pendapatan</option>
-              </select>
-            </label>
-            <label className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-              Kategori
-              <select
-                value={filters.category}
-                onChange={(event) => updateFilter("category", event.target.value as TransactionFilters["category"])}
-                className="app-input mt-1 w-full px-3 py-2.5 text-sm font-normal normal-case tracking-normal"
-              >
-                <option value="SEMUA">Semua kategori</option>
-                {ITEM_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-              Dari
-              <input
-                type="date"
-                max={jakartaToday()}
-                value={filters.dateFrom}
-                onChange={(event) => updateFilter("dateFrom", event.target.value)}
-                className="app-input mt-1 w-full px-3 py-2.5 text-sm font-normal normal-case tracking-normal"
-              />
-            </label>
-            <label className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-              Sampai
-              <input
-                type="date"
-                min={filters.dateFrom || undefined}
-                max={jakartaToday()}
-                value={filters.dateTo}
-                onChange={(event) => updateFilter("dateTo", event.target.value)}
-                className="app-input mt-1 w-full px-3 py-2.5 text-sm font-normal normal-case tracking-normal"
-              />
-            </label>
-          </div>
-        </section>
 
         <section aria-label="Ringkasan saldo" className="grid gap-4 md:grid-cols-3">
           {[
@@ -285,129 +195,86 @@ export default function DashboardPage() {
           ))}
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          <article className="app-panel p-5 lg:col-span-2">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-semibold">Arus kas harian</h2>
-                <p className="mt-1 text-sm text-[var(--muted)]">Pendapatan dan pengeluaran pada filter aktif</p>
-              </div>
+        <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+          <article className="app-panel p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold">Pendapatan vs pengeluaran</h2>
+              <span className="rounded-full bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
+                Bulan ini
+              </span>
             </div>
+            <p className="mb-4 text-sm text-[var(--muted)]">Periode: {periodLabel}</p>
             {isLoading ? <div className="h-52 animate-pulse rounded-xl bg-[var(--surface-soft)]" /> : <CashflowChart days={cashflowDays} />}
           </article>
+
           <article className="app-panel p-5">
-            <h2 className="text-xl font-semibold">Rencana bulan ini</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              {jakartaMonthStart()} – {jakartaToday()}
-            </p>
-            <dl className="mt-4 space-y-3 text-sm">
-              <div className="flex justify-between gap-3">
-                <dt className="text-[var(--muted)]">Plafon belanja</dt>
-                <dd className="font-semibold">{formatCurrency(plan.monthlyExpenseBudget)}</dd>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold">Pengeluaran per kategori</h2>
+              <span className="rounded-full bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
+                Bulan ini
+              </span>
+            </div>
+            {isLoading ? (
+              <div className="h-52 animate-pulse rounded-xl bg-[var(--surface-soft)]" />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-4">
+                <CategoryPieChart slices={categoryTotals} />
+                <p className="text-center text-3xl font-bold text-[var(--ink)]">{formatCurrency(liveStats.expense)}</p>
+                <p className="text-sm text-[var(--muted)]">Total pengeluaran</p>
               </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-[var(--muted)]">Sudah terpakai</dt>
-                <dd className="font-semibold">{formatCurrency(monthStats.expense)}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-[var(--muted)]">Sisa plafon</dt>
-                <dd className={budgetLeft < 0 ? "font-semibold text-[var(--coral)]" : "font-semibold text-[var(--mint-dark)]"}>
-                  {formatCurrency(budgetLeft)}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-[var(--muted)]">Vs target tabungan</dt>
-                <dd className={savingsGap < 0 ? "font-semibold text-[var(--coral)]" : "font-semibold"}>
-                  {formatCurrency(savingsGap)}
-                </dd>
-              </div>
-            </dl>
-            <a href="/plan" className="mt-5 inline-flex text-sm font-semibold text-[var(--mint-dark)] underline underline-offset-4">
-              Atur anggaran
-            </a>
+            )}
           </article>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="app-panel p-6">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <h2 className="text-xl font-semibold">Riwayat transaksi</h2>
-              <span className="text-sm text-[var(--muted)]">
-                {filteredTransactions.length ? `${filteredTransactions.length} hasil` : "Tidak ada hasil"}
-              </span>
-            </div>
-            <div className="space-y-3" aria-live="polite">
-              {isLoading && [1, 2, 3].map((item) => <div key={item} className="h-20 animate-pulse rounded-xl bg-[var(--surface-soft)]" />)}
-              {!isLoading &&
-                pagedTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] p-4"
-                  >
-                    <div>
-                      <a href={`/transactions/${transaction.id}`} className="font-medium text-[var(--ink)] hover:text-[var(--mint-dark)]">
-                        {transaction.merchant}
-                      </a>
-                      <p className="text-sm text-[var(--muted)]">
-                        {formatDateLabel(transaction.date)} • {transaction.items[0]?.category ?? "Lain-lain"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p
-                        className={`font-semibold ${
-                          transaction.transaction_type === "PENDAPATAN" ? "text-[var(--mint-dark)]" : "text-[var(--coral)]"
-                        }`}
-                      >
-                        {transaction.transaction_type === "PENDAPATAN" ? "+" : "-"}
-                        {formatCurrency(transaction.total_amount)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              {!isLoading && !filteredTransactions.length && (
-                <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-soft)] px-5 py-8 text-center">
-                  <p className="font-semibold text-[var(--ink)]">Tidak ada transaksi pada filter ini</p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">Ubah rentang tanggal atau catat transaksi baru.</p>
-                  <a href="/scan" className="app-button-primary mt-4 inline-flex px-4 py-2 text-sm font-semibold">
-                    Scan struk
-                  </a>
-                </div>
-              )}
-            </div>
-            {filteredTransactions.length > PAGE_SIZE && (
-              <div className="mt-5 flex items-center justify-between gap-3 text-sm">
-                <button
-                  type="button"
-                  disabled={page === 1}
-                  onClick={() => setPage((current) => current - 1)}
-                  className="rounded-full border border-[var(--line)] px-3 py-1.5 disabled:opacity-40"
-                >
-                  Sebelumnya
-                </button>
-                <span className="text-[var(--muted)]">
-                  Halaman {page} dari {pageCount}
-                </span>
-                <button
-                  type="button"
-                  disabled={page === pageCount}
-                  onClick={() => setPage((current) => current + 1)}
-                  className="rounded-full border border-[var(--line)] px-3 py-1.5 disabled:opacity-40"
-                >
-                  Berikutnya
-                </button>
-              </div>
-            )}
+        <section className="app-panel p-5">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-xl font-semibold">Riwayat transaksi</h2>
+            <button type="button" className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-sm text-[var(--muted)]">
+              Belum ada
+            </button>
           </div>
 
-          <div className="app-panel p-6">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold">Pengeluaran per kategori</h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">Mengikuti filter yang aktif</p>
-            </div>
+          <div className="mb-4 grid gap-3 md:grid-cols-[1.6fr_1fr_1fr]">
+            <input
+              value={filters.search}
+              onChange={(event) => updateFilter("search", event.target.value)}
+              placeholder="Cari merchant atau kategori"
+              className="app-input w-full px-3 py-2.5 text-sm"
+            />
+            <select
+              value={filters.type}
+              onChange={(event) => updateFilter("type", event.target.value as TransactionFilters["type"])}
+              className="app-input w-full px-3 py-2.5 text-sm"
+            >
+              <option value="SEMUA">Semua tipe</option>
+              <option value="PENGELUARAN">Pengeluaran</option>
+              <option value="PENDAPATAN">Pendapatan</option>
+            </select>
+            <select
+              value={filters.category}
+              onChange={(event) => updateFilter("category", event.target.value as TransactionFilters["category"])}
+              className="app-input w-full px-3 py-2.5 text-sm"
+            >
+              <option value="SEMUA">Semua kategori</option>
+              {ITEM_CATEGORIES.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="rounded-[18px] border border-dashed border-[var(--line)] bg-[var(--surface-soft)] px-5 py-10 text-center">
             {isLoading ? (
-              <div className="h-40 animate-pulse rounded-xl bg-[var(--surface-soft)]" />
+              <div className="mx-auto h-5 w-40 animate-pulse rounded-full bg-white/60" />
             ) : (
-              <CategoryPieChart slices={categoryTotals} />
+              <>
+                <p className="text-base font-semibold text-[var(--ink)]">Belum ada transaksi</p>
+                <p className="mt-2 text-sm text-[var(--muted)]">
+                  Mulai dengan menginput atau scan struk Anda untuk memulai pencatatan.
+                </p>
+                <a href="/scan" className="app-button-primary mt-5 inline-flex px-4 py-2.5 text-sm font-semibold">
+                  Scan struk
+                </a>
+              </>
             )}
           </div>
         </section>

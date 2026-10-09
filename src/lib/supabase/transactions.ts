@@ -6,11 +6,19 @@ export async function uploadReceipt(
   transactionId: string,
   file: File
 ) {
+  const extensionByMimeType: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  };
+  const extension = extensionByMimeType[file.type];
+  if (!extension) throw new Error("Format gambar struk tidak didukung.");
+
   const supabase = createClient();
-  const path = `${userId}/${transactionId}.jpg`;
+  const path = `${userId}/${transactionId}.${extension}`;
   const { error } = await supabase.storage.from("receipts").upload(path, file, {
     cacheControl: "3600",
-    contentType: "image/jpeg",
+    contentType: file.type,
     upsert: false,
   });
 
@@ -129,3 +137,4 @@ export async function consumeAiRequest(dailyLimit = 20) {
   if (error) throw error;
   return Boolean(data);
 }
+
