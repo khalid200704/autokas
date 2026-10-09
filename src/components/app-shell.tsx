@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 import { ArrowLeft, LayoutDashboard, PiggyBank, Plus, ReceiptText, Settings } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 type AppShellProps = {
   eyebrow?: string;
@@ -26,6 +30,8 @@ export function AppShell({
   backLabel = "Kembali",
   children,
 }: AppShellProps) {
+  const pathname = usePathname();
+
   return (
     <main className="app-shell min-h-screen px-4 py-5 text-[var(--ink)] sm:py-8">
       <div className="mx-auto max-w-5xl">
@@ -33,7 +39,7 @@ export function AppShell({
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 py-4">
             <Link href="/dashboard" className="flex items-center gap-3" aria-label="Buka ringkasan AutoKas">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0f2d2b] text-sm font-bold text-white shadow-sm shadow-[rgba(15,45,43,0.15)]">
-                <img src="/icon.svg" alt="" className="h-6 w-6 object-contain" />
+                <Image src="/icon.svg" alt="" width={24} height={24} className="h-6 w-6 object-contain" />
               </span>
               <span className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-[var(--mint-dark)]">
                 AutoKas
@@ -45,7 +51,12 @@ export function AppShell({
                 <Link
                   key={href}
                   href={href}
-                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[0.8rem] text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--ink)]"
+                  aria-current={pathname === href || (href === "/dashboard" && pathname.startsWith("/transactions")) ? "page" : undefined}
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-[0.8rem] transition hover:bg-[var(--surface-soft)] hover:text-[var(--ink)] ${
+                    pathname === href || (href === "/dashboard" && pathname.startsWith("/transactions"))
+                      ? "bg-[var(--surface-soft)] font-semibold text-[var(--ink)]"
+                      : "text-[var(--muted)]"
+                  }`}
                 >
                   <Icon size={14} strokeWidth={1.8} aria-hidden="true" />
                   {label}
@@ -91,7 +102,12 @@ export function AppShell({
             <Link
               key={href}
               href={href}
-              className="flex min-w-20 flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--ink)]"
+              aria-current={pathname === href || (href === "/dashboard" && pathname.startsWith("/transactions")) ? "page" : undefined}
+              className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] leading-tight transition hover:bg-[var(--surface-soft)] hover:text-[var(--ink)] sm:text-[11px] ${
+                pathname === href || (href === "/dashboard" && pathname.startsWith("/transactions"))
+                  ? "bg-[var(--surface-soft)] font-semibold text-[var(--mint-dark)]"
+                  : "text-[var(--muted)]"
+              }`}
             >
               <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
               {label}

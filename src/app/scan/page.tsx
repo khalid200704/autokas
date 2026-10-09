@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import imageCompression from "browser-image-compression";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { emptyTransaction, formatCurrency, type ExtractedTransaction, type TransactionItem } from "@/lib/mock-data";
 import { AppShell } from "@/components/app-shell";
@@ -32,6 +33,12 @@ export default function ScanPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const totalItems = useMemo(
     () =>
       transaction.items.reduce(
@@ -46,6 +53,9 @@ export default function ScanPage() {
     setHasDetectionResult(false);
     setTransaction(emptyTransaction);
     setAiResult(null);
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setIsSaved(false);
     setIsLoading(true);
     setProcessingStage("Menyiapkan foto...");
 
@@ -53,6 +63,10 @@ export default function ScanPage() {
       const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
       if (!allowedTypes.includes(file.type)) {
         throw new Error("Gunakan gambar JPG, PNG, atau WebP.");
+      }
+
+      if (file.size === 0) {
+        throw new Error("File gambar kosong. Pilih foto lain.");
       }
 
       if (file.size > 10 * 1024 * 1024) {
@@ -189,7 +203,14 @@ export default function ScanPage() {
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <section className="app-panel p-5">
             <label className="relative flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--mint)] bg-[var(--surface-soft)] px-6 py-10 text-center transition hover:bg-[#e2f0e6]">
-              <input type="file" accept="image/jpeg,image/png,image/webp" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" onChange={handleFileChange} />
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isLoading || isSaving}
+                aria-label="Pilih foto struk"
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-wait"
+                onChange={handleFileChange}
+              />
               <span className="text-lg font-semibold text-[var(--ink)]">Tambahkan foto struk</span>
               <span className="mt-2 text-sm text-[var(--muted)]">Ambil foto baru atau pilih dari galeri</span>
               <div className="mt-5 flex flex-col gap-2 min-[380px]:flex-row">
@@ -200,7 +221,14 @@ export default function ScanPage() {
 
             {previewUrl && (
               <div className="mt-5 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
-                <img src={previewUrl} alt="Preview struk" className="h-72 w-full object-cover" />
+                <Image
+                  src={previewUrl}
+                  alt="Preview struk"
+                  width={960}
+                  height={640}
+                  unoptimized
+                  className="h-72 w-full object-cover"
+                />
               </div>
             )}
 
@@ -228,7 +256,8 @@ export default function ScanPage() {
 
             {selectedFile && (
               <div className="mt-4 text-sm text-[var(--muted)]">
-                File siap: <span className="font-semibold text-[var(--ink)]">{selectedFile.name}</span>
+                <span>File siap:</span>{" "}
+                <span className="break-all font-semibold text-[var(--ink)]">{selectedFile.name}</span>
               </div>
             )}
           </section>
@@ -253,18 +282,20 @@ export default function ScanPage() {
             )}
 
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-2 text-sm text-slate-300 md:col-span-1">
+              <label className="space-y-2 text-sm text-[var(--muted)] md:col-span-1">
                 <span>Merchant</span>
                 <input
+                  required
                   value={transaction.merchant}
                   onChange={(event) => updateField("merchant", event.target.value)}
                   className="app-input w-full px-3 py-2.5"
                 />
               </label>
 
-              <label className="space-y-2 text-sm text-slate-300 md:col-span-1">
+              <label className="space-y-2 text-sm text-[var(--muted)] md:col-span-1">
                 <span>Tanggal</span>
                 <input
+                  required
                   type="date"
                   value={transaction.date}
                   onChange={(event) => updateField("date", event.target.value)}
@@ -272,7 +303,7 @@ export default function ScanPage() {
                 />
               </label>
 
-              <label className="space-y-2 text-sm text-slate-300 md:col-span-1">
+              <label className="space-y-2 text-sm text-[var(--muted)] md:col-span-1">
                 <span>Tipe</span>
                 <select
                   value={transaction.transaction_type}
@@ -286,19 +317,20 @@ export default function ScanPage() {
                 </select>
               </label>
 
-              <label className="space-y-2 text-sm text-slate-300 md:col-span-1">
+              <label className="space-y-2 text-sm text-[var(--muted)] md:col-span-1">
                 <span>Total</span>
                 <input
                   type="number"
                   min="0"
                   inputMode="decimal"
+                  required
                   value={transaction.total_amount || ""}
                   onChange={(event) => updateField("total_amount", Number(event.target.value))}
                   className="app-input w-full px-3 py-2.5"
                 />
               </label>
 
-              <label className="space-y-2 text-sm text-slate-300 md:col-span-2">
+              <label className="space-y-2 text-sm text-[var(--muted)] md:col-span-2">
                 <span>Keterangan</span>
                 <textarea
                   value={transaction.description}
@@ -331,6 +363,7 @@ export default function ScanPage() {
                         onChange={(event) => updateItem(index, "item_name", event.target.value)}
                         className="app-input px-2 py-2 text-sm"
                         placeholder="Nama item"
+                        aria-label={`Nama item ${index + 1}`}
                       />
                       <input
                         type="number"
@@ -340,6 +373,7 @@ export default function ScanPage() {
                         onChange={(event) => updateItem(index, "price", Number(event.target.value))}
                         className="app-input px-2 py-2 text-sm"
                         placeholder="Harga"
+                        aria-label={`Harga item ${index + 1}`}
                       />
                       <input
                         type="number"
@@ -349,11 +383,13 @@ export default function ScanPage() {
                         onChange={(event) => updateItem(index, "qty", Number(event.target.value))}
                         className="app-input px-2 py-2 text-sm"
                         placeholder="Qty"
+                        aria-label={`Jumlah item ${index + 1}`}
                       />
                       <select
                         value={item.category}
                         onChange={(event) => updateItem(index, "category", event.target.value)}
                         className="app-input px-2 py-2 text-sm"
+                        aria-label={`Kategori item ${index + 1}`}
                       >
                         {categoryOptions.map((option) => (
                           <option key={option} value={option}>
@@ -365,6 +401,7 @@ export default function ScanPage() {
                         type="button"
                         onClick={() => removeItem(index)}
                         className="rounded-lg border border-[var(--coral)]/30 bg-[#fff0ed] px-2 py-2 text-xs font-medium text-[var(--coral)]"
+                        aria-label={`Hapus item ${index + 1}`}
                       >
                         Hapus
                       </button>
@@ -381,7 +418,7 @@ export default function ScanPage() {
 
             {Number(transaction.total_amount) !== Number(totalItems) && (
               <div className="mt-4 rounded-xl border border-[#e5c98b] bg-[#fff8e7] px-4 py-3 text-sm text-[var(--amber)]">
-                Warning: total transaksi tidak sama dengan total item. Silakan cek kembali.
+                Perhatian: total transaksi berbeda dari total item. Periksa kembali, termasuk pajak atau potongan.
               </div>
             )}
           </section>

@@ -24,12 +24,13 @@ export function CategoryPieChart({ slices }: { slices: Slice[] }) {
     return <p className="text-sm text-[var(--muted)]">Belum ada pengeluaran pada filter ini.</p>;
   }
 
-  let cursor = -Math.PI / 2;
-  const arcs = slices.map((slice) => {
+  const arcs = slices.map((slice, index) => {
+    const start = slices.slice(0, index).reduce(
+      (angle, previous) => angle + (previous.value / total) * Math.PI * 2,
+      -Math.PI / 2
+    );
     const sweep = (slice.value / total) * Math.PI * 2;
-    const path = arcPath(80, 80, 72, cursor, cursor + sweep);
-    cursor += sweep;
-    return { ...slice, path };
+    return { ...slice, path: arcPath(80, 80, 72, start, start + sweep) };
   });
 
   return (
