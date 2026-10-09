@@ -145,18 +145,12 @@ export default function DashboardPage() {
       description="Lihat arus uang bulanan Anda dan catat transaksi baru dengan cepat."
     >
       <div className="space-y-6">
-        <section className="flex flex-col justify-between gap-5 rounded-[22px] bg-[#17332f] p-5 text-white shadow-[0_18px_40px_rgba(23,51,47,0.14)] sm:flex-row sm:items-end sm:p-6">
+        <section className="rounded-[22px] bg-[#17332f] p-5 text-white shadow-[0_18px_40px_rgba(23,51,47,0.14)] sm:p-6">
           <div>
             <p className="text-sm text-[#d3ebdf]">Selamat datang kembali,</p>
             <h2 className="mt-1 text-3xl font-bold leading-tight">{accountName}</h2>
             {accountEmail && <p className="mt-2 text-sm text-[#cfe4de]">{accountEmail}</p>}
           </div>
-          <Link
-            href="/scan"
-            className="inline-flex items-center justify-center rounded-full bg-[#d9efe4] px-4 py-2.5 text-sm font-semibold text-[#17332f] transition hover:bg-white"
-          >
-            + Catat transaksi
-          </Link>
         </section>
 
         {loadError && (
