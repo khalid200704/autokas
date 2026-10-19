@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f7f2;
-  --foreground: #17332f;
-  --ink: #17332f;
-  --muted: #6f817c;
-  --line: #dce6df;
+  --background: #f8f9ff;
+  --foreground: #0f172a;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
   --surface: #ffffff;
-  --surface-soft: #edf4ee;
-  --mint: #2f9d78;
-  --mint-dark: #23735b;
-  --coral: #d8645a;
-  --amber: #b57b24;
+  --surface-soft: #ecfdf5;
+  --mint: #10b981;
+  --mint-dark: #047857;
+  --coral: #e11d48;
+  --amber: #d97706;
 }
 
 * {
@@ -26,25 +26,25 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Plus Jakarta Sans", Arial, Helvetica, sans-serif;
 }
 
 h1,
 h2,
 h3 {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: inherit;
   letter-spacing: -0.02em;
 }
 
 ::selection {
-  background: #bfe3cf;
+  background: #a7f3d0;
   color: var(--ink);
 }
 
 .app-shell {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 90% 0%, rgba(191, 227, 207, 0.55), transparent 26rem),
+    radial-gradient(circle at 90% 0%, rgba(16, 185, 129, 0.08), transparent 26rem),
     var(--background);
 }
 
@@ -56,9 +56,9 @@ h3 {
 
 .app-panel {
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--surface);
-  box-shadow: 0 16px 40px rgba(35, 72, 61, 0.07);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
 }
 
 .app-input {
@@ -71,8 +71,13 @@ h3 {
 
 .app-input:focus {
   border-color: var(--mint);
-  box-shadow: 0 0 0 3px rgba(47, 157, 120, 0.14);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
   outline: none;
+}
+
+.app-input:focus-visible {
+  outline: 3px solid rgba(4, 120, 87, 0.55);
+  outline-offset: 2px;
 }
 
 .app-button-primary {
@@ -83,7 +88,7 @@ h3 {
 }
 
 .app-button-primary:hover {
-  background: var(--mint-dark);
+  background: #059669;
   transform: translateY(-1px);
 }
 
@@ -115,4 +120,32 @@ button,
 input,
 select {
   font: inherit;
+}
+
+details > summary {
+  cursor: pointer;
+}
+
+details > summary::after {
+  content: "+";
+  float: right;
+  margin-left: 0.75rem;
+  color: var(--mint-dark);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+details[open] > summary::after {
+  content: "−";
+}
+
+@media (max-width: 1023px) {
+  .app-shell-content {
+    padding-bottom: calc(6.75rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid rgba(4, 120, 87, 0.55);
+  outline-offset: 2px;
 }

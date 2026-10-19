@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AutoKas
 
-## Getting Started
+AutoKas is a mobile-first Indonesian personal finance app for recording income and expenses, scanning receipts with AI, reviewing cashflow, setting budgets, and sharing opt-in activities with a small circle.
 
-First, run the development server:
+## Core features
+
+- Scan receipts and review AI-extracted transaction details before saving.
+- View and filter cashflow, transactions, and spending categories.
+- Set monthly income, expense, savings, and category budgets.
+- Create a Sirkel Kas or join one with an invitation code. Transaction details stay private unless a user explicitly selects a transaction to share.
+- Create circle challenges, check in once per day, and compare challenge progress rather than personal wealth.
+- Split a transaction between manually named participants by assigning receipt items or dividing the total equally. Apportioned receipt charges and remaining amounts are included in the saved breakdown, which can be shared through WhatsApp.
+
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Copy the required environment values into `.env.local`. The AI extraction route requires `GEMINI_API_KEY`; Supabase-backed features require `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase migrations
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Apply the SQL files under `supabase/migrations` to the project's Supabase database in order. In particular, run `003_circles_challenges_split_bills.sql` before opening Sirkel Kas or the split-bill panel. That migration creates circle, activity, challenge, and split tables, their row-level security policies, and the RPC functions used to create/join circles and record daily challenge check-ins.
 
-## Learn More
+Circle activities are visible only to members of the selected circle. Only data explicitly selected on the share form is copied into the circle feed. Split-bill data is visible only to the owner of the original transaction.
 
-To learn more about Next.js, take a look at the following resources:
+## Validation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+npm run build
+```

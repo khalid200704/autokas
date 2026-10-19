@@ -26,8 +26,8 @@ export default function SettingsPage() {
 
   return (
     <AppShell
-      title="Pengaturan"
-      description="Kelola preferensi pencatatan dan akun AutoKas Anda."
+      title="Akun"
+      description="Kelola akun dan preferensi pencatatan AutoKas Anda."
     >
       <section className="mx-auto max-w-2xl rounded-[26px] border border-[var(--line)] bg-white p-6 shadow-[0_20px_60px_rgba(23,51,47,0.06)] sm:p-8">
         <div className="rounded-[20px] bg-[var(--surface-soft)] p-5">
@@ -47,6 +47,12 @@ export default function SettingsPage() {
         )}
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/sirkel"
+            className="inline-flex items-center justify-center rounded-full border border-[var(--line)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)]"
+          >
+            Buka Sirkel Kas
+          </Link>
           <Link
             href="/plan"
             className="app-button-primary inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold"

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Check, ImagePlus, Sparkles } from "lucide-react";
 import { emptyTransaction, formatCurrency, type ExtractedTransaction, type TransactionItem } from "@/lib/mock-data";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/client";
@@ -195,14 +196,21 @@ export default function ScanPage() {
 
   return (
     <AppShell
-      title="Scan & verifikasi"
-      description="Foto struk, periksa hasil AI, lalu simpan setelah datanya benar."
+      title="Catat transaksi"
+      description="Pilih foto agar AI mengisi otomatis, atau isi sendiri. Periksa data sebelum menyimpan."
       backHref="/dashboard"
       backLabel="Ke dashboard"
     >
-        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="app-panel p-5">
-            <label className="relative flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--mint)] bg-[var(--surface-soft)] px-6 py-10 text-center transition hover:bg-[#e2f0e6]">
+        <div className="grid items-start gap-5 lg:grid-cols-[0.85fr_1.15fr]">
+          <section className="app-panel p-4 sm:p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-sm font-bold text-[var(--mint-dark)]">1</span>
+              <div>
+                <h2 className="font-bold text-[var(--ink)]">Foto struk</h2>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">JPG, PNG, atau WebP · maksimal 10 MB</p>
+              </div>
+            </div>
+            <label className="relative flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--mint)] bg-[var(--surface-soft)] px-5 py-7 text-center transition hover:bg-[#e2f0e6] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--mint-dark)]">
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -211,23 +219,22 @@ export default function ScanPage() {
                 className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-wait"
                 onChange={handleFileChange}
               />
-              <span className="text-lg font-semibold text-[var(--ink)]">Tambahkan foto struk</span>
-              <span className="mt-2 text-sm text-[var(--muted)]">Ambil foto baru atau pilih dari galeri</span>
-              <div className="mt-5 flex flex-col gap-2 min-[380px]:flex-row">
-                <span className="app-button-primary px-4 py-2.5 text-sm font-semibold">Pilih foto</span>
-              </div>
-              <span className="mt-3 text-xs text-[var(--muted)]">JPG, PNG, WebP • maksimal 10 MB</span>
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--mint-dark)] shadow-sm">
+                <ImagePlus size={23} aria-hidden="true" />
+              </span>
+              <span className="mt-3 text-sm font-bold text-[var(--ink)]">{selectedFile ? "Ganti foto struk" : "Ambil foto atau pilih dari galeri"}</span>
+              <span className="mt-1 text-xs text-[var(--muted)]">Foto diperkecil sebelum dikirim ke AI.</span>
             </label>
 
             {previewUrl && (
-              <div className="mt-5 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
+              <div className="mt-4 overflow-hidden rounded-xl border border-[var(--line)] bg-slate-50 p-2">
                 <Image
                   src={previewUrl}
                   alt="Preview struk"
                   width={960}
                   height={640}
                   unoptimized
-                  className="h-72 w-full object-cover"
+                  className="mx-auto max-h-80 w-full object-contain"
                 />
               </div>
             )}
@@ -262,17 +269,16 @@ export default function ScanPage() {
             )}
           </section>
 
-          <section className="app-panel p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Periksa transaksi</h2>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isSaved || isSaving || isLoading || !transaction.merchant.trim() || !transaction.date}
-                className="app-button-primary px-3 py-1.5 text-xs font-semibold"
-              >
-                {isSaved ? "Tersimpan" : isSaving ? "Menyimpan..." : "Simpan transaksi"}
-              </button>
+          <section className="app-panel p-4 sm:p-5">
+            <div className="mb-5 flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-sm font-bold text-[var(--mint-dark)]">2</span>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-bold">Periksa dan lengkapi</h2>
+                  {hasDetectionResult && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-800"><Sparkles size={12} aria-hidden="true" /> Dibaca AI</span>}
+                </div>
+                <p className="mt-1 text-xs leading-5 text-[var(--muted)]">Pastikan nama, tanggal, dan nominal sudah benar. Semua kolom bisa diedit.</p>
+              </div>
             </div>
 
             {!hasDetectionResult && !isLoading && (
@@ -312,13 +318,13 @@ export default function ScanPage() {
                   }
                   className="app-input w-full px-3 py-2.5"
                 >
-                  <option value="PENGELUARAN">PENGELUARAN</option>
-                  <option value="PENDAPATAN">PENDAPATAN</option>
+                  <option value="PENGELUARAN">Pengeluaran</option>
+                  <option value="PENDAPATAN">Pemasukan</option>
                 </select>
               </label>
 
               <label className="space-y-2 text-sm text-[var(--muted)] md:col-span-1">
-                <span>Total</span>
+                <span>Total transaksi (Rp)</span>
                 <input
                   type="number"
                   min="0"
@@ -344,11 +350,14 @@ export default function ScanPage() {
 
             <div className="mt-5 rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] p-4">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-semibold text-[var(--ink)]">Daftar item</h3>
+                <div>
+                  <h3 className="font-semibold text-[var(--ink)]">Rincian item</h3>
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">Opsional — bantu memahami kategori pengeluaran.</p>
+                </div>
                 <button
                   type="button"
                   onClick={addItem}
-                  className="rounded-full bg-[var(--ink)] px-3 py-1.5 text-xs font-semibold text-white"
+                  className="min-h-10 rounded-full bg-[var(--ink)] px-3.5 py-2 text-xs font-semibold text-white"
                 >
                   + Tambah item
                 </button>
@@ -357,11 +366,11 @@ export default function ScanPage() {
               <div className="space-y-3">
                 {transaction.items.map((item, index) => (
                   <div key={`${item.item_name}-${index}`} className="rounded-xl border border-[var(--line)] bg-white p-3">
-                    <div className="grid gap-3 md:grid-cols-[1.2fr_0.6fr_0.5fr_0.9fr_auto]">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1.2fr_0.6fr_0.5fr_0.9fr_auto] sm:gap-3">
                       <input
                         value={item.item_name}
                         onChange={(event) => updateItem(index, "item_name", event.target.value)}
-                        className="app-input px-2 py-2 text-sm"
+                        className="app-input col-span-2 min-h-11 px-3 py-2 text-sm sm:col-span-1"
                         placeholder="Nama item"
                         aria-label={`Nama item ${index + 1}`}
                       />
@@ -371,7 +380,7 @@ export default function ScanPage() {
                         inputMode="decimal"
                         value={item.price || ""}
                         onChange={(event) => updateItem(index, "price", Number(event.target.value))}
-                        className="app-input px-2 py-2 text-sm"
+                        className="app-input min-h-11 px-3 py-2 text-sm"
                         placeholder="Harga"
                         aria-label={`Harga item ${index + 1}`}
                       />
@@ -381,14 +390,14 @@ export default function ScanPage() {
                         inputMode="numeric"
                         value={item.qty || ""}
                         onChange={(event) => updateItem(index, "qty", Number(event.target.value))}
-                        className="app-input px-2 py-2 text-sm"
+                        className="app-input min-h-11 px-3 py-2 text-sm"
                         placeholder="Qty"
                         aria-label={`Jumlah item ${index + 1}`}
                       />
                       <select
                         value={item.category}
                         onChange={(event) => updateItem(index, "category", event.target.value)}
-                        className="app-input px-2 py-2 text-sm"
+                        className="app-input min-h-11 px-3 py-2 text-sm"
                         aria-label={`Kategori item ${index + 1}`}
                       >
                         {categoryOptions.map((option) => (
@@ -400,7 +409,7 @@ export default function ScanPage() {
                       <button
                         type="button"
                         onClick={() => removeItem(index)}
-                        className="rounded-lg border border-[var(--coral)]/30 bg-[#fff0ed] px-2 py-2 text-xs font-medium text-[var(--coral)]"
+                        className="min-h-11 rounded-lg border border-[var(--coral)]/30 bg-[#fff0ed] px-3 py-2 text-xs font-medium text-[var(--coral)]"
                         aria-label={`Hapus item ${index + 1}`}
                       >
                         Hapus
@@ -418,9 +427,19 @@ export default function ScanPage() {
 
             {Number(transaction.total_amount) !== Number(totalItems) && (
               <div className="mt-4 rounded-xl border border-[#e5c98b] bg-[#fff8e7] px-4 py-3 text-sm text-[var(--amber)]">
-                Perhatian: total transaksi berbeda dari total item. Periksa kembali, termasuk pajak atau potongan.
+                Total transaksi berbeda dari rincian item. Ini bisa terjadi karena pajak atau potongan; pastikan angka totalnya benar.
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaved || isSaving || isLoading || !transaction.merchant.trim() || !transaction.date}
+              className="app-button-primary mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 px-5 py-3 text-sm font-bold disabled:opacity-50"
+            >
+              {isSaved ? <><Check size={18} aria-hidden="true" /> Tersimpan</> : isSaving ? "Menyimpan transaksi..." : "Simpan transaksi"}
+            </button>
+            <p className="mt-2 text-center text-xs text-[var(--muted)]">Transaksi hanya disimpan setelah Anda menekan tombol ini.</p>
           </section>
         </div>
     </AppShell>

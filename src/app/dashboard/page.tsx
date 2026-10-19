@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { ArrowRight, ScanLine, UsersRound } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { CashflowChart, CategoryPieChart } from "@/components/finance-charts";
 import {
@@ -25,7 +26,6 @@ const PAGE_SIZE = 20;
 export default function DashboardPage() {
   const [savedTransactions, setSavedTransactions] = useState<SavedTransaction[]>([]);
   const [accountName, setAccountName] = useState("Anda");
-  const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [preset, setPreset] = useState<DatePreset>("bulan-ini");
@@ -62,7 +62,6 @@ export default function DashboardPage() {
           "Anda";
         if (active) {
           setAccountName(fallbackName);
-          setAccountEmail(userData.user.email ?? null);
         }
         const { data: profile } = await supabase
           .from("profiles")
@@ -141,16 +140,20 @@ export default function DashboardPage() {
 
   return (
     <AppShell
-      title="Ringkasan kas"
-      description="Lihat arus uang bulanan Anda dan catat transaksi baru dengan cepat."
+      title="Beranda"
+      description="Pantau saldo dan aktivitas keuangan Anda."
     >
-      <div className="space-y-6">
-        <section className="rounded-[22px] bg-[#17332f] p-5 text-white shadow-[0_18px_40px_rgba(23,51,47,0.14)] sm:p-6">
-          <div>
-            <p className="text-sm text-[#d3ebdf]">Selamat datang kembali,</p>
-            <h2 className="mt-1 text-3xl font-bold leading-tight">{accountName}</h2>
-            {accountEmail && <p className="mt-2 text-sm text-[#cfe4de]">{accountEmail}</p>}
+      <div className="space-y-5 sm:space-y-6">
+        <section className="flex items-center justify-between gap-3 rounded-[22px] bg-[#17332f] p-4 text-white shadow-[0_18px_40px_rgba(23,51,47,0.14)] sm:p-6">
+          <div className="min-w-0">
+            <p className="text-xs text-[#d3ebdf] sm:text-sm">Selamat datang,</p>
+            <h2 className="mt-1 truncate text-xl font-bold leading-tight sm:text-3xl">{accountName}</h2>
           </div>
+          <Link href="/scan" aria-label="Catat transaksi" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--mint)] px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-[#059669] sm:px-5 sm:text-sm">
+            <ScanLine size={18} aria-hidden="true" />
+            <span className="sm:hidden">Catat</span>
+            <span className="hidden sm:inline">Catat transaksi</span>
+          </Link>
         </section>
 
         {loadError && (
@@ -159,30 +162,48 @@ export default function DashboardPage() {
           </div>
         )}
 
+        <section aria-label="Ringkasan saldo" className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
+          {[
+            { label: "Saldo bersih", value: liveStats.balance, accent: "bg-[#5c8fca]", balance: true },
+            { label: "Pendapatan", value: liveStats.income, accent: "bg-[var(--mint)]" },
+            { label: "Pengeluaran", value: liveStats.expense, accent: "bg-[var(--coral)]" },
+          ].map((item) => (
+            <div key={item.label} className={`app-panel relative min-w-0 overflow-hidden p-4 sm:p-5 ${item.balance ? "col-span-2 bg-[#ecfdf5] md:col-span-1" : ""}`}>
+              <div className={`absolute inset-y-0 left-0 w-1 ${item.accent}`} />
+              <p className="text-xs font-medium text-[var(--muted)] sm:text-sm">{item.label}</p>
+              {isLoading ? (
+                <div className="mt-3 h-8 w-32 animate-pulse rounded-lg bg-[var(--surface-soft)]" />
+              ) : (
+                <p className="mt-2 break-words text-xl font-bold leading-tight tabular-nums text-[var(--ink)] sm:text-2xl">{formatCurrency(item.value)}</p>
+              )}
+            </div>
+          ))}
+        </section>
+
         <section aria-label="Filter periode laporan" className="app-panel p-4 sm:p-5">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <div>
-              <p className="text-sm font-semibold text-[var(--ink)]">Periode laporan</p>
+              <p className="text-sm font-semibold text-[var(--ink)]">Periode ringkasan</p>
               <p className="mt-1 text-xs text-[var(--muted)]">
-                Ringkasan, grafik, dan riwayat mengikuti periode yang dipilih.
+                Pilih rentang tanggal untuk memperbarui saldo, grafik, dan riwayat.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
               {([
                 ["bulan-ini", "Bulan ini"],
                 ["7-hari", "7 hari"],
                 ["30-hari", "30 hari"],
                 ["semua", "Semua waktu"],
-                ["kustom", "Kustom"],
+                ["kustom", "Pilih tanggal"],
               ] as const).map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
                   aria-pressed={preset === value}
                   onClick={() => applyPreset(value)}
-                  className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                  className={`min-h-10 shrink-0 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
                     preset === value
-                      ? "border-[var(--ink)] bg-[var(--ink)] text-white"
+                      ? "border-[var(--mint-dark)] bg-[var(--mint-dark)] text-white"
                       : "border-[var(--line)] bg-white text-[var(--muted)] hover:border-[var(--mint)] hover:text-[var(--ink)]"
                   }`}
                 >
@@ -194,43 +215,15 @@ export default function DashboardPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-xs font-medium text-[var(--muted)]">
                   Dari tanggal
-                  <input
-                    type="date"
-                    value={filters.dateFrom}
-                    onChange={(event) => updateFilter("dateFrom", event.target.value)}
-                    className="app-input mt-1 w-full px-3 py-2.5 text-sm"
-                  />
+                  <input type="date" value={filters.dateFrom} onChange={(event) => updateFilter("dateFrom", event.target.value)} className="app-input mt-1 w-full px-3 py-2.5 text-sm" />
                 </label>
                 <label className="text-xs font-medium text-[var(--muted)]">
                   Sampai tanggal
-                  <input
-                    type="date"
-                    value={filters.dateTo}
-                    onChange={(event) => updateFilter("dateTo", event.target.value)}
-                    className="app-input mt-1 w-full px-3 py-2.5 text-sm"
-                  />
+                  <input type="date" value={filters.dateTo} onChange={(event) => updateFilter("dateTo", event.target.value)} className="app-input mt-1 w-full px-3 py-2.5 text-sm" />
                 </label>
               </div>
             )}
           </div>
-        </section>
-
-        <section aria-label="Ringkasan saldo" className="grid gap-4 md:grid-cols-3">
-          {[
-            { label: "Pendapatan", value: liveStats.income, accent: "bg-[var(--mint)]" },
-            { label: "Pengeluaran", value: liveStats.expense, accent: "bg-[var(--coral)]" },
-            { label: "Saldo", value: liveStats.balance, accent: "bg-[#5c8fca]" },
-          ].map((item) => (
-            <div key={item.label} className="app-panel relative overflow-hidden p-5">
-              <div className={`absolute inset-y-0 left-0 w-1 ${item.accent}`} />
-              <p className="text-sm text-[var(--muted)]">{item.label}</p>
-              {isLoading ? (
-                <div className="mt-4 h-9 w-36 animate-pulse rounded-lg bg-[var(--surface-soft)]" />
-              ) : (
-                <p className="mt-3 text-3xl font-bold text-[var(--ink)]">{formatCurrency(item.value)}</p>
-              )}
-            </div>
-          ))}
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
@@ -242,7 +235,14 @@ export default function DashboardPage() {
               </span>
             </div>
             <p className="mb-4 text-sm text-[var(--muted)]">Periode: {periodLabel}</p>
-            {isLoading ? <div className="h-52 animate-pulse rounded-xl bg-[var(--surface-soft)]" /> : <CashflowChart days={cashflowDays} />}
+            {isLoading ? (
+              <div className="h-52 animate-pulse rounded-xl bg-[var(--surface-soft)]" />
+            ) : filteredTransactions.length === 0 ? (
+              <div className="flex min-h-36 flex-col items-center justify-center rounded-xl bg-slate-50 px-4 text-center">
+                <p className="text-sm font-semibold text-[var(--ink)]">Belum ada transaksi di periode ini</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">Catat transaksi untuk melihat perubahan arus kas.</p>
+              </div>
+            ) : <CashflowChart days={cashflowDays} />}
           </article>
 
           <article className="app-panel p-5">
@@ -254,6 +254,11 @@ export default function DashboardPage() {
             </div>
             {isLoading ? (
               <div className="h-52 animate-pulse rounded-xl bg-[var(--surface-soft)]" />
+            ) : filteredTransactions.length === 0 ? (
+              <div className="flex min-h-36 flex-col items-center justify-center rounded-xl bg-slate-50 px-4 text-center">
+                <p className="text-sm font-semibold text-[var(--ink)]">Belum ada data kategori</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">Rincian pengeluaran akan tampil setelah transaksi dicatat.</p>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-4">
                 <CategoryPieChart slices={categoryTotals} />
@@ -264,7 +269,7 @@ export default function DashboardPage() {
           </article>
         </section>
 
-        <section className="app-panel p-5">
+        <section id="transactions" className="app-panel scroll-mt-6 p-5">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold">Riwayat transaksi</h2>
@@ -404,6 +409,22 @@ export default function DashboardPage() {
             </div>
           )}
         </section>
+
+        <Link
+          href="/sirkel"
+          className="group flex min-h-[4.5rem] items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm transition hover:border-emerald-300 sm:p-5"
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-[var(--mint-dark)]">
+              <UsersRound size={21} aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block font-semibold text-[var(--ink)]">Sirkel Kas</span>
+              <span className="mt-0.5 block text-xs text-[var(--muted)]">Tantangan hemat dan dukungan bersama teman</span>
+            </span>
+          </span>
+          <ArrowRight size={18} className="shrink-0 text-[var(--mint-dark)] transition group-hover:translate-x-1" aria-hidden="true" />
+        </Link>
       </div>
     </AppShell>
   );

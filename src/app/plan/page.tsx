@@ -30,7 +30,8 @@ export default function PlanPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setPlan(readFinancePlan());
+    const frame = window.requestAnimationFrame(() => setPlan(readFinancePlan()));
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -123,21 +124,21 @@ export default function PlanPage() {
       backHref="/dashboard"
       backLabel="Ringkasan"
     >
-      <div className="space-y-6">
-        <section className="grid gap-4 md:grid-cols-3">
+      <div className="space-y-5 sm:space-y-6">
+        <section aria-label="Ringkasan anggaran bulan ini" className="grid gap-3 md:grid-cols-3 md:gap-4">
           <article className="app-panel p-5">
-            <p className="text-sm text-[var(--muted)]">Pemasukan vs target</p>
+            <p className="text-sm font-medium text-[var(--muted)]">Pemasukan bulan ini</p>
             <p className="mt-2 text-2xl font-bold">{isLoading ? "…" : formatCurrency(monthActuals.income)}</p>
-            <p className="mt-1 text-xs text-[var(--muted)]">Target {formatCurrency(plan.monthlyIncomeTarget)}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">dari target {formatCurrency(plan.monthlyIncomeTarget)}</p>
             <div className="mt-3 h-2 rounded-full bg-[var(--surface-soft)]">
               <div className="h-2 rounded-full bg-[var(--mint)]" style={{ width: `${incomeProgress}%` }} />
             </div>
           </article>
           <article className="app-panel p-5">
-            <p className="text-sm text-[var(--muted)]">Belanja vs plafon</p>
+            <p className="text-sm font-medium text-[var(--muted)]">Pengeluaran bulan ini</p>
             <p className="mt-2 text-2xl font-bold">{isLoading ? "…" : formatCurrency(monthActuals.expense)}</p>
             <p className={`mt-1 text-xs ${remainingBudget < 0 ? "text-[var(--coral)]" : "text-[var(--muted)]"}`}>
-              {remainingBudget < 0 ? "Lewat plafon " : "Sisa "}
+              {remainingBudget < 0 ? "Melebihi anggaran " : "Sisa anggaran "}
               {formatCurrency(Math.abs(remainingBudget))}
             </p>
             <div className="mt-3 h-2 rounded-full bg-[var(--surface-soft)]">
@@ -148,85 +149,104 @@ export default function PlanPage() {
             </div>
           </article>
           <article className="app-panel p-5">
-            <p className="text-sm text-[var(--muted)]">Saldo vs tabungan</p>
+            <p className="text-sm font-medium text-[var(--muted)]">Saldo bersih</p>
             <p className="mt-2 text-2xl font-bold">{isLoading ? "…" : formatCurrency(monthActuals.balance)}</p>
             <p className={`mt-1 text-xs ${remainingSavings < 0 ? "text-[var(--coral)]" : "text-[var(--mint-dark)]"}`}>
-              Target {formatCurrency(plan.savingsTarget)}
+              {remainingSavings < 0 ? "Kurang dari target tabungan " : "Di atas target tabungan "}
+              {formatCurrency(Math.abs(remainingSavings))}
             </p>
           </article>
         </section>
 
-        <section className="app-panel p-6">
+        <section className="app-panel p-4 sm:p-6">
           <h2 className="text-xl font-semibold">Target bulan berjalan</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">Angka disimpan di perangkat ini dan dipakai di ringkasan kas.</p>
-          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">Masukkan target bulanan Anda dalam rupiah. Target ini dibandingkan dengan transaksi yang sudah dicatat.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3 sm:gap-4">
             <label className="text-sm font-medium">
-              Target pemasukan
+              Target pemasukan (Rp)
               <input
                 type="number"
                 min={0}
+                inputMode="numeric"
+                placeholder="Contoh: 5000000"
                 value={numberInput(plan.monthlyIncomeTarget)}
                 onChange={(event) => updateNumber("monthlyIncomeTarget", event.target.value)}
-                className="app-input mt-1 w-full px-3 py-2.5 text-sm"
+                className="app-input mt-1 min-h-11 w-full px-3 py-2.5 text-sm"
               />
             </label>
             <label className="text-sm font-medium">
-              Plafon pengeluaran
+              Batas pengeluaran (Rp)
               <input
                 type="number"
                 min={0}
+                inputMode="numeric"
+                placeholder="Contoh: 3000000"
                 value={numberInput(plan.monthlyExpenseBudget)}
                 onChange={(event) => updateNumber("monthlyExpenseBudget", event.target.value)}
-                className="app-input mt-1 w-full px-3 py-2.5 text-sm"
+                className="app-input mt-1 min-h-11 w-full px-3 py-2.5 text-sm"
               />
             </label>
             <label className="text-sm font-medium">
-              Target tabungan
+              Target tabungan (Rp)
               <input
                 type="number"
                 min={0}
+                inputMode="numeric"
+                placeholder="Contoh: 500000"
                 value={numberInput(plan.savingsTarget)}
                 onChange={(event) => updateNumber("savingsTarget", event.target.value)}
-                className="app-input mt-1 w-full px-3 py-2.5 text-sm"
+                className="app-input mt-1 min-h-11 w-full px-3 py-2.5 text-sm"
               />
             </label>
           </div>
         </section>
 
-        <section className="app-panel p-6">
-          <h2 className="text-xl font-semibold">Anggaran per kategori</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">Kosongkan jika kategori itu tidak perlu plafon sendiri.</p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <section className="app-panel p-4 sm:p-6">
+          <details>
+            <summary className="list-none text-sm font-bold text-[var(--ink)]">
+              Anggaran per kategori <span className="font-normal text-[var(--muted)]">· opsional</span>
+              <span className="mt-1 block text-xs font-normal text-[var(--muted)]">Atur batas khusus untuk jenis pengeluaran tertentu.</span>
+            </summary>
+            <div className="mt-4 grid gap-3 border-t border-[var(--line)] pt-4 sm:grid-cols-2">
             {EXPENSE_CATEGORIES.map((category) => {
               const spent = monthActuals.byCategory.get(category) ?? 0;
               const budget = plan.categoryBudgets[category] ?? 0;
               const over = budget > 0 && spent > budget;
+              const categoryProgress = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
               return (
-                <div key={category} className="rounded-xl border border-[var(--line)] bg-[var(--surface-soft)] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <label className="text-sm font-medium" htmlFor={`budget-${category}`}>
+                <div key={category} className="rounded-xl border border-[var(--line)] bg-white p-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold" htmlFor={`budget-${category}`}>
                       {category}
                     </label>
-                    <span className={`text-xs ${over ? "text-[var(--coral)]" : "text-[var(--muted)]"}`}>
-                      Terpakai {formatCurrency(spent)}
+                    <span className={`text-xs ${over ? "font-semibold text-[var(--coral)]" : "text-[var(--muted)]"}`}>
+                      {formatCurrency(spent)} terpakai{budget > 0 ? ` dari ${formatCurrency(budget)}` : ""}
                     </span>
                   </div>
                   <input
                     id={`budget-${category}`}
                     type="number"
                     min={0}
+                    inputMode="numeric"
+                    placeholder="Batas per bulan (Rp)"
                     value={numberInput(plan.categoryBudgets[category] ?? 0)}
                     onChange={(event) => updateCategoryBudget(category, event.target.value)}
-                    className="app-input mt-2 w-full px-3 py-2 text-sm"
+                    className="app-input mt-2 min-h-11 w-full px-3 py-2 text-sm"
                   />
+                  {budget > 0 && (
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100" aria-label={`${Math.round(categoryProgress)} persen anggaran terpakai`}>
+                      <div className={`h-full rounded-full ${over ? "bg-[var(--coral)]" : "bg-[var(--mint)]"}`} style={{ width: `${categoryProgress}%` }} />
+                    </div>
+                  )}
                 </div>
               );
             })}
-          </div>
-          <button type="button" onClick={handleSave} className="app-button-primary mt-6 inline-flex px-5 py-2.5 text-sm font-semibold">
-            Simpan rencana
+            </div>
+          </details>
+          <button type="button" onClick={handleSave} className="app-button-primary mt-5 inline-flex min-h-11 w-full items-center justify-center px-5 py-2.5 text-sm font-semibold sm:w-auto">
+            Simpan semua target
           </button>
-          {saved && <p className="mt-3 text-sm text-[var(--mint-dark)]">Rencana tersimpan di perangkat ini.</p>}
+          {saved && <p role="status" className="mt-3 text-sm text-[var(--mint-dark)]">Target dan anggaran tersimpan di perangkat ini.</p>}
         </section>
       </div>
     </AppShell>
