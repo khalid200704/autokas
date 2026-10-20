@@ -204,7 +204,7 @@ begin
   end if;
 
   insert into public.circles (name, invite_code, created_by)
-  values (trim(p_name), upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 10)), current_user_id)
+  values (trim(p_name), upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)), current_user_id)
   returning * into new_circle;
 
   insert into public.circle_members (circle_id, user_id, role)
