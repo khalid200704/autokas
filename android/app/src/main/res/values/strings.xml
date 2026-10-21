@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AutoKas</string>
+    <string name="title_activity_main">AutoKas</string>
+    <string name="package_name">com.autokas.app</string>
+    <string name="custom_url_scheme">com.autokas.app</string>
+</resources>
