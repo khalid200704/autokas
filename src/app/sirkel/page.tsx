@@ -109,6 +109,7 @@ export default function CirclePage() {
           if (active) setError(null);
           return;
         }
+
         if (authError) throw authError;
         if (!authData.user) {
           if (active) setError(null);

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, hasSupabaseConfig } from "@/lib/supabase/client";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -59,14 +59,20 @@ export default function SettingsPage() {
           >
             Kelola rencana keuangan
           </Link>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)] disabled:opacity-50"
-          >
-            {isSigningOut ? "Keluar..." : "Keluar dari akun"}
-          </button>
+          {hasSupabaseConfig() ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)] disabled:opacity-50"
+            >
+              {isSigningOut ? "Keluar..." : "Keluar dari akun"}
+            </button>
+          ) : (
+            <span className="inline-flex items-center justify-center rounded-full bg-[var(--surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--muted)]">
+              Hubungkan Supabase untuk mengelola akun
+            </span>
+          )}
         </div>
       </section>
     </AppShell>

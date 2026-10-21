@@ -1,12 +1,10 @@
-import Link from "next/link";
+"use client";
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const { error } = await searchParams;
+import { Suspense } from "react";
+import { LoginPanel } from "@/components/login-panel";
+import { hasSupabaseConfig } from "@/lib/supabase/client";
 
+export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4 py-10 text-[var(--ink)]">
       <div className="w-full max-w-md rounded-[28px] border border-[var(--line)] bg-white p-7 shadow-[0_20px_60px_rgba(23,51,47,0.08)]">
@@ -21,27 +19,15 @@ export default async function LoginPage({
         </div>
 
         <p className="mb-6 text-sm leading-6 text-[var(--muted)]">
-          Masuk dengan Google untuk mengakses dashboard finansial Anda.
+          {hasSupabaseConfig()
+            ? "Masuk dengan Google untuk menyimpan data ke akun Anda."
+            : "Hubungkan proyek Supabase untuk masuk dan menyimpan data ke akun Anda."}
         </p>
 
-        {error && (
-          <div className="mb-4 rounded-xl border border-[var(--coral)]/30 bg-[#fff0ed] px-4 py-3 text-sm text-[var(--coral)]">
-            {decodeURIComponent(error)}
-          </div>
-        )}
+        <Suspense fallback={<div className="min-h-12 animate-pulse rounded-full bg-[var(--surface-soft)]" />}>
+          <LoginPanel />
+        </Suspense>
 
-        <a
-          href="/auth/login"
-          className="app-button-primary flex min-h-12 w-full items-center justify-center px-6 py-3 text-sm font-semibold"
-        >
-          Masuk dengan Google
-        </a>
-
-        <div className="mt-6 text-center text-sm text-[var(--muted)]">
-          <Link href="/" className="font-medium text-[var(--mint-dark)] hover:text-[var(--ink)]">
-            Kembali ke beranda
-          </Link>
-        </div>
       </div>
     </main>
   );

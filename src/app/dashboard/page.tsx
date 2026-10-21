@@ -17,7 +17,7 @@ import {
   type TransactionFilters,
 } from "@/lib/finance";
 import { formatCurrency, type ItemCategory } from "@/lib/mock-data";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, hasSupabaseConfig } from "@/lib/supabase/client";
 import { readOwnTransactions } from "@/lib/supabase/transactions";
 import type { SavedTransaction } from "@/lib/transaction-storage";
 
@@ -47,6 +47,13 @@ export default function DashboardPage() {
     async function loadTransactions() {
       setIsLoading(true);
       setLoadError(null);
+      if (!hasSupabaseConfig()) {
+        if (active) {
+          setLoadError("Supabase belum dikonfigurasi. Hubungkan proyek Anda untuk memuat transaksi.");
+          setIsLoading(false);
+        }
+        return;
+      }
       try {
         const supabase = createClient();
         const { data: userData } = await supabase.auth.getUser();
@@ -330,7 +337,7 @@ export default function DashboardPage() {
                   return (
                     <li key={transaction.id}>
                       <Link
-                        href={`/transactions/${transaction.id}`}
+                        href={`/transactions?id=${encodeURIComponent(transaction.id)}`}
                         className="flex flex-col gap-3 rounded-xl px-3 py-4 transition hover:bg-[var(--surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mint-dark)] sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="min-w-0">

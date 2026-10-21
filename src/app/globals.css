@@ -43,6 +43,7 @@ h3 {
 
 .app-shell {
   min-height: 100vh;
+  padding-bottom: max(6.5rem, calc(5.75rem + env(safe-area-inset-bottom)));
   background:
     radial-gradient(circle at 90% 0%, rgba(16, 185, 129, 0.08), transparent 26rem),
     var(--background);

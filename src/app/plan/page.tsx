@@ -15,7 +15,7 @@ import {
   type FinancePlan,
 } from "@/lib/finance-plan";
 import { formatCurrency, type ItemCategory } from "@/lib/mock-data";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, hasSupabaseConfig } from "@/lib/supabase/client";
 import { readOwnTransactions } from "@/lib/supabase/transactions";
 import type { SavedTransaction } from "@/lib/transaction-storage";
 
@@ -38,6 +38,10 @@ export default function PlanPage() {
     let active = true;
     async function load() {
       try {
+        if (!hasSupabaseConfig()) {
+          if (active) setTransactions([]);
+          return;
+        }
         const supabase = createClient();
         const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) {

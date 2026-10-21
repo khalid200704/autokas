@@ -12,6 +12,7 @@ import {
   PiggyBank,
   ScanLine,
   UserRound,
+  UsersRound,
 } from "lucide-react";
 
 type AppShellProps = {
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/dashboard#transactions", label: "Transaksi", icon: List },
   { href: "/scan", label: "Scan", icon: ScanLine },
   { href: "/plan", label: "Anggaran", icon: PiggyBank },
+  { href: "/sirkel", label: "Sirkel", icon: UsersRound },
   { href: "/settings", label: "Akun", icon: UserRound },
 ];
 
@@ -111,7 +113,7 @@ export function AppShell({
 
         <nav
           aria-label="Navigasi utama mobile"
-          className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-30 grid grid-cols-5 items-end rounded-2xl border border-[var(--line)] bg-white/95 px-1.5 pb-1.5 pt-2 shadow-[0_12px_36px_rgba(15,23,42,0.14)] backdrop-blur lg:hidden"
+          className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-30 grid grid-cols-6 items-end rounded-2xl border border-[var(--line)] bg-white/95 px-1.5 pb-1.5 pt-2 shadow-[0_12px_36px_rgba(15,23,42,0.14)] backdrop-blur lg:hidden"
         >
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);

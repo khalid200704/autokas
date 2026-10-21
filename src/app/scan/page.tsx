@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
+import { Camera, CameraDirection } from "@capacitor/camera";
+import { Capacitor } from "@capacitor/core";
 import { useRouter } from "next/navigation";
 import { Check, ImagePlus, Sparkles } from "lucide-react";
 import { emptyTransaction, formatCurrency, type ExtractedTransaction, type TransactionItem } from "@/lib/mock-data";
 import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/client";
 import { createTransactionWithItems, uploadReceipt } from "@/lib/supabase/transactions";
+import { hasSupabaseConfig } from "@/lib/supabase/client";
 
 const categoryOptions = [
   "Makanan & Minuman",
@@ -23,6 +26,7 @@ const categoryOptions = [
 
 export default function ScanPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -88,9 +92,23 @@ export default function ScanPage() {
       const formData = new FormData();
       formData.append("image", compressedFile, compressedFile.name);
 
-      const response = await fetch("/api/extract", {
+      if (!hasSupabaseConfig()) {
+        throw new Error("Supabase belum dikonfigurasi. Hubungkan proyek Anda sebelum memindai struk.");
+      }
+      const supabase = createClient();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!sessionData.session) {
+        throw new Error("Sesi login berakhir. Masuk kembali untuk memindai struk.");
+      }
+
+      const extractUrl = Capacitor.isNativePlatform()
+        ? "https://autokas-ohuv.vercel.app/api/extract"
+        : "/api/extract";
+      const response = await fetch(extractUrl, {
         method: "POST",
         body: formData,
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       });
 
       if (!response.ok) {
@@ -122,6 +140,45 @@ export default function ScanPage() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (file) handleImageUpload(file);
+  };
+
+  const captureReceiptPhoto = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    setError(null);
+    setIsLoading(true);
+    setProcessingStage("Membuka kamera...");
+    try {
+      const photo = await Camera.takePhoto({
+        quality: 85,
+        correctOrientation: true,
+        cameraDirection: CameraDirection.Rear,
+      });
+      if (!photo.webPath) throw new Error("Foto kamera tidak dapat dibaca.");
+
+      const imageResponse = await fetch(photo.webPath);
+      if (!imageResponse.ok) throw new Error("Foto kamera gagal dimuat.");
+      const blob = await imageResponse.blob();
+      const extension = photo.metadata?.format?.toLowerCase() === "png" ? "png" : "jpg";
+      const mimeType = blob.type.startsWith("image/")
+        ? blob.type
+        : extension === "png" ? "image/png" : "image/jpeg";
+      const imageFile = new File([blob], `struk-${Date.now()}.${extension}`, { type: mimeType });
+      await handleImageUpload(imageFile);
+    } catch (captureError) {
+      const message = captureError instanceof Error ? captureError.message : "Kamera gagal dibuka.";
+      if (!/cancel/i.test(message)) {
+        setError(message);
+        setProcessingStage("Deteksi gagal.");
+      } else {
+        setProcessingStage(null);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateField = <K extends keyof ExtractedTransaction>(field: K, value: ExtractedTransaction[K]) => {
@@ -165,14 +222,16 @@ export default function ScanPage() {
     setError(null);
     setIsSaving(true);
     try {
-      const supabase = createClient();
-      const { data: userData } = await supabase.auth.getUser();
+      if (!hasSupabaseConfig()) throw new Error("Supabase belum dikonfigurasi.");
+      const { data: userData, error: authError } = await createClient().auth.getUser();
+      if (authError) throw authError;
+      const userId = userData.user?.id;
 
-      if (userData.user) {
+      if (userId) {
         const transactionId = crypto.randomUUID();
         let imagePath: string | null = null;
         if (selectedFile) {
-          imagePath = await uploadReceipt(userData.user.id, transactionId, selectedFile);
+          imagePath = await uploadReceipt(userId, transactionId, selectedFile);
         }
         await createTransactionWithItems({
           transaction,
@@ -181,9 +240,7 @@ export default function ScanPage() {
           aiResult,
           sourceFileName: selectedFile?.name,
         });
-      } else {
-        throw new Error("Silakan login terlebih dahulu untuk menyimpan transaksi.");
-      }
+      } else throw new Error("Silakan masuk terlebih dahulu untuk menyimpan transaksi.");
 
       setIsSaved(true);
       window.setTimeout(() => router.push("/dashboard"), 700);
@@ -212,6 +269,7 @@ export default function ScanPage() {
             </div>
             <label className="relative flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--mint)] bg-[var(--surface-soft)] px-5 py-7 text-center transition hover:bg-[#e2f0e6] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--mint-dark)]">
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 disabled={isLoading || isSaving}
@@ -222,9 +280,18 @@ export default function ScanPage() {
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--mint-dark)] shadow-sm">
                 <ImagePlus size={23} aria-hidden="true" />
               </span>
-              <span className="mt-3 text-sm font-bold text-[var(--ink)]">{selectedFile ? "Ganti foto struk" : "Ambil foto atau pilih dari galeri"}</span>
+              <span className="mt-3 text-sm font-bold text-[var(--ink)]">{selectedFile ? "Ganti foto struk" : "Pilih foto struk dari galeri"}</span>
               <span className="mt-1 text-xs text-[var(--muted)]">Foto diperkecil sebelum dikirim ke AI.</span>
             </label>
+            <button
+              type="button"
+              disabled={isLoading || isSaving}
+              onClick={() => void captureReceiptPhoto()}
+              className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[var(--line)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)] disabled:opacity-50"
+            >
+              <ImagePlus size={17} aria-hidden="true" />
+              Ambil foto dengan kamera
+            </button>
 
             {previewUrl && (
               <div className="mt-4 overflow-hidden rounded-xl border border-[var(--line)] bg-slate-50 p-2">

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { MobileRuntime } from "@/components/mobile-runtime";
 
 export const metadata: Metadata = {
   title: "AutoKas — Asisten Keuangan",
@@ -14,7 +15,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="id" className="h-full antialiased" data-scroll-behavior="smooth">
-      <body className="min-h-full bg-[var(--background)] text-[var(--ink)]">{children}</body>
+      <body className="min-h-full bg-[var(--background)] text-[var(--ink)]">
+        <MobileRuntime />
+        {children}
+      </body>
     </html>
   );
 }

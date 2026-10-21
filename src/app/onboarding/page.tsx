@@ -3,24 +3,36 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, hasSupabaseConfig } from "@/lib/supabase/client";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleContinue = async () => {
     setSaving(true);
-    const supabase = createClient();
-    const { data } = await supabase.auth.getUser();
-    if (data.user) {
-      await supabase.from("profiles").upsert({
-        id: data.user.id,
-        onboarding_completed: true,
-        updated_at: new Date().toISOString(),
-      });
+    setError(null);
+    try {
+      if (hasSupabaseConfig()) {
+        const supabase = createClient();
+        const { data, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        if (data.user) {
+          const { error: profileError } = await supabase.from("profiles").upsert({
+            id: data.user.id,
+            onboarding_completed: true,
+            updated_at: new Date().toISOString(),
+          });
+          if (profileError) throw profileError;
+        }
+      }
+      router.push("/dashboard");
+    } catch (continueError) {
+      setError(continueError instanceof Error ? continueError.message : "Pengaturan awal gagal disimpan.");
+    } finally {
+      setSaving(false);
     }
-    router.push("/dashboard");
   };
 
   return (
@@ -31,6 +43,11 @@ export default function OnboardingPage() {
       backLabel="Beranda"
     >
       <section className="mx-auto max-w-2xl rounded-[26px] border border-[var(--line)] bg-white p-6 shadow-[0_20px_60px_rgba(23,51,47,0.06)] sm:p-8">
+        {error && (
+          <p role="alert" className="mb-4 rounded-xl border border-[var(--coral)]/30 bg-[#fff0ed] px-4 py-3 text-sm text-[var(--coral)]">
+            {error}
+          </p>
+        )}
         <div className="rounded-[20px] bg-[var(--surface-soft)] p-5">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[var(--mint-dark)]">Konfigurasi awal</p>
           <p className="mt-3 text-2xl font-bold">Semua siap untuk mulai.</p>

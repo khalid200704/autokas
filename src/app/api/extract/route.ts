@@ -32,6 +32,37 @@ Aturan:
 - Semua nominal harus berupa angka rupiah tanpa titik, koma, atau simbol mata uang.
 - Untuk PENDAPATAN, item boleh berisi satu item "Pendapatan".`;
 
+const allowedOrigins = new Set([
+  "https://autokas-ohuv.vercel.app",
+  "https://localhost",
+  "http://localhost",
+  "capacitor://localhost",
+]);
+
+function corsHeaders(request: Request) {
+  const headers = new Headers();
+  const origin = request.headers.get("origin");
+  headers.set("Vary", "Origin");
+  if (origin && allowedOrigins.has(origin)) {
+    headers.set("Access-Control-Allow-Origin", origin);
+    headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type, apikey, x-client-info");
+    headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  }
+  return headers;
+}
+
+function apiResponse(
+  request: Request,
+  body: unknown,
+  status = 200
+) {
+  return NextResponse.json(body, { status, headers: corsHeaders(request) });
+}
+
+export async function OPTIONS(request: Request) {
+  return new Response(null, { status: 204, headers: corsHeaders(request) });
+}
+
 function parseModelJson(text: string) {
   const withoutFence = text.replace(/```(?:json)?/gi, "").trim();
   const start = withoutFence.indexOf("{");
@@ -88,23 +119,24 @@ function extractGeneratedText(responseBody: unknown): string | null {
 export async function POST(request: Request) {
   try {
     const supabase = await createServerSupabaseClient();
+    const bearerToken = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser(bearerToken);
 
     if (authError || !user) {
-      return NextResponse.json(
+      return apiResponse(request,
         { message: "Silakan login terlebih dahulu untuk memindai struk." },
-        { status: 401 }
+        401
       );
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json(
+      return apiResponse(request,
         { message: "GEMINI_API_KEY belum diatur di .env.local." },
-        { status: 503 }
+        503
       );
     }
 
@@ -112,24 +144,24 @@ export async function POST(request: Request) {
     const image = formData.get("image");
 
     if (!image || !(image instanceof File)) {
-      return NextResponse.json(
+      return apiResponse(request,
         { message: "File gambar tidak valid." },
-        { status: 400 }
+        400
       );
     }
 
     if (image.size === 0 || image.size > 10 * 1024 * 1024) {
-      return NextResponse.json(
+      return apiResponse(request,
         { message: "Ukuran gambar harus lebih dari 0 dan maksimal 10 MB." },
-        { status: 400 }
+        400
       );
     }
 
     const allowedMimeTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
     if (!allowedMimeTypes.has(image.type)) {
-      return NextResponse.json(
+      return apiResponse(request,
         { message: "Format gambar harus JPG, PNG, atau WebP." },
-        { status: 400 }
+        400
       );
     }
 
@@ -139,15 +171,15 @@ export async function POST(request: Request) {
     );
     if (quotaError) {
       console.error("AI quota check error:", quotaError);
-      return NextResponse.json(
+      return apiResponse(request,
         { message: "Kuota scan belum bisa diperiksa. Coba lagi sebentar." },
-        { status: 503 }
+        503
       );
     }
     if (!canExtract) {
-      return NextResponse.json(
+      return apiResponse(request,
         { message: "Batas 20 scan harian tercapai. Coba lagi besok." },
-        { status: 429 }
+        429
       );
     }
 
@@ -215,35 +247,35 @@ export async function POST(request: Request) {
         : "Gemini tidak mengembalikan hasil.";
 
       const fallbackStatus = lastGeminiError?.status === 429 ? 429 : 502;
-      return NextResponse.json(
+      return apiResponse(request,
         {
           message:
             lastGeminiError?.status === 429
               ? "Kuota Gemini sedang habis atau terlalu banyak permintaan. Coba lagi beberapa saat."
               : `Gemini error (${lastGeminiError?.status ?? "unknown"}): ${providerMessage}`,
         },
-        { status: fallbackStatus }
+        fallbackStatus
       );
     }
 
-    return NextResponse.json(normalizeResult(parseModelJson(extractedText)), { status: 200 });
+    return apiResponse(request, normalizeResult(parseModelJson(extractedText)));
   } catch (error) {
     console.error("Extract API error:", error);
     if (error instanceof DOMException && error.name === "TimeoutError") {
-      return NextResponse.json(
+      return apiResponse(request,
         { message: "Gemini terlalu lama membaca gambar. Coba foto yang lebih jelas atau ulangi." },
-        { status: 504 }
+        504
       );
     }
 
-    return NextResponse.json(
+    return apiResponse(request,
       {
         message:
           error instanceof Error
             ? `Gagal membaca hasil Gemini: ${error.message}`
             : "Gemini gagal memproses gambar.",
       },
-      { status: 500 }
+      500
     );
   }
 }
